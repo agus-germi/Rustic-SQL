@@ -1,6 +1,6 @@
 use std::{fs::File, io::{self, BufRead}};
 use crate::{error::{print_error, ErrorType}, extras::{cast_to_value, get_column_index}, filter, query_parser};
-use query_parser::{parse_query, Query, SelectParser, SelectQuery};
+use query_parser::SelectQuery;
 
 
 
