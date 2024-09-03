@@ -99,6 +99,7 @@ pub fn filter_row(row: Vec<String>, query: &SelectQuery, headers: &Vec<&str>) ->
     let column_condition_value = cast_to_value(query.condition[2].as_str());
     let operator = query.condition[1].as_str();
     let value = cast_to_value(&row[column_condition_index]);
+    println!("Value: {:?}, Condition: {:?}, Operator: {:?}", value, column_condition_value, operator);
 
     filter(value, column_condition_value, operator)
 }
@@ -119,18 +120,19 @@ pub fn select(query: SelectQuery) -> Result<(), ErrorType>{
         let headers: Vec<&str> = header.split(',').collect();
 
         let mut lines = reader.lines();
-        lines.next(); // me salteo header
-        let mut result: Vec<String> = Vec::new();
+        let mut result_table: Vec<String> = Vec::new();
         for line in lines{
             if let Ok(line) = line {
                 let values: Vec<String> = line.split(",").map(|s| s.to_string()).collect();
                 if filter_row(values, &query, &headers){
-                    result.push(line);
+                    
+                    result_table.push(line);
                 };
             } else {
                 // TODO: handle error
             }
         }
+        println!("Resultado: {:?}", result_table);
     } else {
         print_error(ErrorType::InvalidTable, "No se pudo abrir el archivo");
         return Err(ErrorType::InvalidTable);    }
