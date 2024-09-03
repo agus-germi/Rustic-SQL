@@ -3,7 +3,7 @@ mod query_parser;
 mod extras;
 
 
-use std::env; //to get the arguments from the command line
+use std::{env, fs::File, io::{self, BufRead}}; //to get the arguments from the command line
 use error::{ErrorType, print_error};
 use query_parser::{parse_query, Query, SelectParser, SelectQuery};
 
@@ -37,7 +37,29 @@ fn main() {
 // -- EXECUTE FUNCTION --
 
 pub fn select(query: SelectQuery) {
-    println!("SELECT");
+    println!("{}", query.table_name.trim());
+    let path = format!("{}.csv", query.table_name);
+    println!("{}", path);
+    if let Ok(file) = File::open(&path) {
+        let reader = io::BufReader::new(file);
+        for line in reader.lines() {
+            match line {
+                Ok(line_content) => {
+                    // Process each line here
+                    println!("{}", line_content);
+                }
+                Err(e) => {
+                    let error = ErrorType::InvalidTable;
+                    print_error(error, "Error al leer el archivo");
+                    return;
+                }
+            }
+        }
+    } else {
+        let error = ErrorType::InvalidTable;
+        print_error(error, "Error al leer el archivo");
+        return;
+    }
 }
 pub fn execute(query: Query) {
     match query {
