@@ -95,6 +95,9 @@ pub fn filter(value1: Value, value2: Value, operator: &str) -> bool {
 //  FILTER FUNCTION --
 
 pub fn filter_row(row: Vec<String>, query: &SelectQuery, headers: &Vec<&str>) -> bool{
+    if query.condition.is_empty() {
+        return true;
+    }
     let column_condition_index = get_column_index(headers, query.condition[0].as_str());
     let column_condition_value = cast_to_value(query.condition[2].as_str());
     let operator = query.condition[1].as_str();
@@ -132,12 +135,25 @@ pub fn select(query: SelectQuery) -> Result<(), ErrorType>{
                 // TODO: handle error
             }
         }
-        println!("Resultado: {:?}", result_table);
+        print_selected_rows(result_table, &query, &headers)
     } else {
         print_error(ErrorType::InvalidTable, "No se pudo abrir el archivo");
         return Err(ErrorType::InvalidTable);    }
     Ok(())
 }
+
+pub fn print_selected_rows(result_table: Vec<String>, query: &SelectQuery, headers: &Vec<&str>) {
+    if query.columns[0] == "*" {
+        println!("{}", headers.join(","));
+        for row in result_table {
+            println!("{}", row);
+        }
+    } else {
+        //code
+    }
+}
+
+
 
 pub fn execute(query: Query) {
     match query {
@@ -156,5 +172,4 @@ fn get_headers(reader : &mut io::BufReader<File>) -> Vec<String> {
     let header = header.trim();
     let headers: Vec<String> = header.split(',').map(|s| s.to_string()).collect();
     headers
-    
 }
