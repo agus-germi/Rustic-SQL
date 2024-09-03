@@ -73,8 +73,9 @@ impl CommandParser for InsertParser {
         if let Some(index) = parsed_query.iter().position(|x| x == "values") {
             value_index = index;
         }
-        let values = cleaned_values(parsed_query[value_index + 1..].to_vec());
+        let mut values = cleaned_values(parsed_query[value_index + 1..].to_vec());
         let columns = cleaned_values(parsed_query[table_index + 1..value_index].to_vec());
+        
 
         Ok(Query::Insert(InsertQuery {
             table_name,

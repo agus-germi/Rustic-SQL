@@ -11,7 +11,7 @@ pub fn filter_row(row: Vec<String>, query: &SelectQuery, headers: &Vec<&str>) ->
     let column_condition_index = get_column_index(headers, query.condition[0].as_str());
     let column_condition_value = cast_to_value(query.condition[2].as_str());
     let operator = query.condition[1].as_str();
-    let value = cast_to_value(&row[column_condition_index]);
+    let value = cast_to_value(&row[column_condition_index as usize]);
     //TODO: 1) AND/OR /ETC
     filter(value, column_condition_value, operator)
 }

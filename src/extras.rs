@@ -53,7 +53,7 @@ pub fn get_condition_columns(parsed_query: &Vec<String>) -> Vec<String> {
     
 }
 
-pub fn get_column_index(headers:&Vec<&str>, column_name: &str) -> usize {
+pub fn get_column_index(headers:&Vec<&str>, column_name: &str) -> isize {
     let mut index = 0;
     for header in headers {
         if *header == column_name {
@@ -61,7 +61,7 @@ pub fn get_column_index(headers:&Vec<&str>, column_name: &str) -> usize {
         }
         index += 1;
     }
-    index
+    -1
 }
 
 pub fn cleaned_values(columns: Vec<String>) -> Vec<String> {
