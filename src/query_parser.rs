@@ -101,7 +101,7 @@ impl CommandParser for DeleteParser {
             error::print_error(ErrorType::InvalidSyntax, "Sintaxis inválida, falta 'from'");
             return Err(ErrorType::InvalidSyntax);
         }
-        let condition = get_condition_columns(&parsed_query);
+        let condition = cleaned_values(get_condition_columns(&parsed_query));
 
         Ok(Query::Delete(DeleteQuery {
             table_name,

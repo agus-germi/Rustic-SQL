@@ -1,19 +1,20 @@
 use std::{fs::File, io::{self, BufRead}};
-use crate::{error::{print_error, ErrorType}, extras::{cast_to_value, get_column_index}, filter, query_parser};
+use crate::{error::{print_error, ErrorType}, extras::{cast_to_value, get_column_index}, filter, query_parser::{self, Query}};
 use query_parser::SelectQuery;
 
 
 
-pub fn filter_row(row: Vec<String>, query: &SelectQuery, headers: &Vec<&str>) -> bool{
-    if query.condition.is_empty() {
+pub fn filter_row(row: Vec<String>, condition: &Vec<String>, headers: &Vec<&str>) -> bool{
+    if condition.is_empty() {
         return true;
     }
-    let column_condition_index = get_column_index(headers, query.condition[0].as_str());
-    let column_condition_value = cast_to_value(query.condition[2].as_str());
-    let operator = query.condition[1].as_str();
+    let column_condition_index = get_column_index(headers, condition[0].as_str());
+    let column_condition_value = cast_to_value(condition[2].as_str());
+    let operator = condition[1].as_str();
     let value = cast_to_value(&row[column_condition_index as usize]);
     //TODO: 1) AND/OR /ETC
     filter(value, column_condition_value, operator)
+
 }
 
 // -- EXECUTE FUNCTION --
@@ -36,7 +37,7 @@ pub fn select(query: SelectQuery) -> Result<(), ErrorType>{
         for line in lines{
             if let Ok(line) = line {
                 let values: Vec<String> = line.split(",").map(|s| s.to_string()).collect();
-                if filter_row(values, &query, &headers){
+                if filter_row(values, &query.condition, &headers){
                     
                     result_table.push(line);
                 };

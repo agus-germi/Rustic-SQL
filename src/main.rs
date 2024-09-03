@@ -3,13 +3,15 @@ mod query_parser;
 mod extras;
 mod select_query;
 mod insert_query;
+mod delete_query;
+use crate::delete_query::delete;
 
-use std::{env, fs::File, io::{self, BufRead}};
+use std::{env, fs::{self, File}, io::{self, BufRead, BufReader, BufWriter, Write}};
 use error::{ErrorType, print_error};
 use crate::insert_query::insert;
 use extras::{ get_int_value, get_str_value, Value};
 use query_parser::{parse_query, InsertQuery, Query, DeleteQuery};
-use select_query::select;
+use select_query::{filter_row, select};
 
 #[derive(Debug)]
 pub enum CommandType {
@@ -99,9 +101,7 @@ trait Operations {
 
 //  DELETE FUNCTION --
 
-fn delete(delete_query: DeleteQuery) {
 
-}
 // --
 pub fn execute(query: Query) {
     match query {
@@ -112,8 +112,6 @@ pub fn execute(query: Query) {
             insert(insert_query);
         }
         Query::Delete(delete_query ) => {
-            println!("{:?}", delete_query);
-
             delete(delete_query);
 
         }

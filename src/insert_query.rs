@@ -53,7 +53,6 @@ pub fn generate_row_to_insert(headers: &Vec<&str>,query: InsertQuery ) -> Vec<St
     row_to_insert
 }
 pub fn write_csv(path: &str, values: Option<Vec<String>>) {
-    println!("Write_csv function\n");
   
     let file = OpenOptions::new()
         .append(true)
