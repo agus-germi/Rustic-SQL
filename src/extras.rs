@@ -1,4 +1,10 @@
-#[derive(Debug, PartialEq)] // Add the PartialEq trait
+use std::fs::{File, OpenOptions};
+use std::io::Write;
+
+use crate::error::print_error;
+use crate::error::ErrorType;
+
+#[derive(Debug, PartialEq)] 
 pub enum Value {
     Int(i32),
     Str(String),
@@ -11,8 +17,6 @@ pub fn cast_to_value(s: &str) -> Value {
         Value::Str(s.to_string())
     }
 }
-
-
 
 pub fn get_int_value(value: &Value) -> Option<i32> {
     match value {
@@ -31,17 +35,22 @@ pub fn get_str_value(value: &Value) -> Option<String> {
 pub fn get_columns(parsed_query: &Vec<String>) -> Vec<String> {
     let mut columns = Vec::new();
     let mut index = 1;
-    while parsed_query[index] != "from" {
+    if parsed_query[0] == "update" {
+        while parsed_query[index] != "set" {
+            index += 1;
+        }
+        index += 1;
+    }
+    while index < parsed_query.len() && parsed_query[index] != "from" {
         columns.push(parsed_query[index].to_string());
         index += 1;
     }
     columns
-
 }
 
 pub fn get_condition_columns(parsed_query: &Vec<String>) -> Vec<String> {
     let mut condition_columns = Vec::new();
-    let mut index = parsed_query.iter().position(|x| x == "where");
+    let index = parsed_query.iter().position(|x| x == "where");
     if let Some(mut index) = index {
         index += 1;
         while index < parsed_query.len() {
@@ -68,8 +77,63 @@ pub fn cleaned_values(columns: Vec<String>) -> Vec<String> {
     columns.iter()
            .map(|col| col.trim_matches(|c| c == '(' || c == ')' || c == ',' || c == '\'').trim().to_string())
            .collect()
-
 }
+
+pub fn generate_row_to_insert(headers: &Vec<&str>,columns: &Vec<String>, values: &Vec<String> ) -> Vec<String> {
+    let mut row_to_insert: Vec<String> = vec![String::new(); headers.len()];        
+    for i in headers{
+        for j in columns{
+            if j == *i {
+                let index = get_column_index(&headers, &j);
+                let index = index as usize;
+
+                row_to_insert[index].push_str(&values[index-1]);
+            }
+            else {
+                let index = get_column_index(&headers, &i);
+                let index = index as usize;
+                row_to_insert[index].push_str("");
+            }
+        }
+    }
+    row_to_insert
+}
+pub fn write_csv(path: &str, values: Option<Vec<String>>) {
+  
+    let file = OpenOptions::new()
+        .append(true)
+        .create(true)
+        .open(&path)
+        .map_err(|e| e.to_string());
+  
+    //TODO: get rid of this duplucated code in the open_file function
+    let mut file = match file {
+        Ok(f) => f,
+        Err(e) => {
+  
+            println!("Failed to open the file: {}", e);
+            return;
+        }
+    };
+  
+    // 1st) creo la linea
+    let mut line = String::new();
+    if let Some(values) = values {
+        for (i, value) in values.iter().enumerate() { 
+            if i > 0 {
+                line.push(','); 
+            }
+            line.push_str(value); 
+        }
+        line.push('\n'); 
+  
+          // 2nd) escribo la linea
+        if let Err(e) = file.write_all(line.as_bytes()) {
+          let error = ErrorType::InvalidTable;
+          print_error(error, "No se pudo escribir en el archivo");
+        } 
+    } 
+  }
 #[cfg(test)]
 mod tests {
     use super::*;

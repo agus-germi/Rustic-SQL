@@ -22,7 +22,7 @@ pub fn delete(delete_query: DeleteQuery) -> Result<(), ErrorType>{
             index += 1;
             if let Ok(line) = line {
                 let values: Vec<String> = line.split(",").map(|s| s.to_string()).collect();
-                if filter_row(values, &delete_query.condition, &headers){
+                if filter_row(&values, &delete_query.condition, &headers){
                     delete_line(&relative_path, index);
                     index -= 1;
                 };

@@ -4,13 +4,15 @@ use query_parser::SelectQuery;
 
 
 
-pub fn filter_row(row: Vec<String>, condition: &Vec<String>, headers: &Vec<&str>) -> bool{
+pub fn filter_row(row: &Vec<String>, condition: &Vec<String>, headers: &Vec<&str>) -> bool{
+
     if condition.is_empty() {
         return true;
     }
     let column_condition_index = get_column_index(headers, condition[0].as_str());
     let column_condition_value = cast_to_value(condition[2].as_str());
     let operator = condition[1].as_str();
+
     let value = cast_to_value(&row[column_condition_index as usize]);
     //TODO: 1) AND/OR /ETC
     filter(value, column_condition_value, operator)
@@ -37,7 +39,7 @@ pub fn select(query: SelectQuery) -> Result<(), ErrorType>{
         for line in lines{
             if let Ok(line) = line {
                 let values: Vec<String> = line.split(",").map(|s| s.to_string()).collect();
-                if filter_row(values, &query.condition, &headers){
+                if filter_row(&values, &query.condition, &headers){
                     
                     result_table.push(line);
                 };

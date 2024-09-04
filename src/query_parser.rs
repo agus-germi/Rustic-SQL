@@ -1,4 +1,4 @@
-use crate::error::{self, print_error, ErrorType};
+use crate::error::{self, ErrorType};
 use crate::execute;
 use crate::extras::{get_columns, get_condition_columns, cleaned_values};
 
@@ -7,7 +7,7 @@ pub enum Query {
     Select(SelectQuery),
     Insert(InsertQuery),
     Delete(DeleteQuery),
-    //Update(UpdateQuery),
+    Update(UpdateQuery),
 }
 
 #[derive(Debug)]
@@ -28,9 +28,18 @@ pub struct DeleteQuery {
     pub table_name: String,
     pub condition: Vec<String>,
 }
+
+#[derive(Debug)]
+pub struct UpdateQuery {
+    pub table_name: String,
+    pub columns: Vec<String>,
+    pub values: Vec<String>,
+    pub condition: Vec<String>,
+}
+
 trait CommandParser {
     fn parse(&self,  parsed_query: Vec<String>) -> Result<Query, ErrorType> ;
-}
+    }
 
 pub struct SelectParser;
 
@@ -77,7 +86,7 @@ impl CommandParser for InsertParser {
         if let Some(index) = parsed_query.iter().position(|x| x == "values") {
             value_index = index;
         }
-        let mut values = cleaned_values(parsed_query[value_index + 1..].to_vec());
+        let values = cleaned_values(parsed_query[value_index + 1..].to_vec());
         let columns = cleaned_values(parsed_query[table_index + 1..value_index].to_vec());
         
 
@@ -110,6 +119,41 @@ impl CommandParser for DeleteParser {
     }
     
 }
+pub struct UpdateParser;
+
+impl CommandParser for UpdateParser {
+    fn parse(&self, parsed_query: Vec<String>) -> Result<Query, ErrorType> {
+        let table_name: String;
+        //TODO: get rid of duplicated code
+        let mut index_name = 0;
+        let table_name_index = parsed_query.iter().position(|x| x == "update");
+        if let Some(mut index) = table_name_index{
+            table_name = parsed_query[index + 1].to_string();
+            index_name = index + 1;
+        } else {
+            error::print_error(ErrorType::InvalidSyntax, "Sintaxis inválida, falta 'update'");
+            return Err(ErrorType::InvalidSyntax);
+        }
+        let mut columns = Vec::new();
+        let mut values = Vec::new();
+        //TODO: find a way of getting it done better
+        for i in (index_name + 1)..parsed_query.len() {
+            if parsed_query[i] == "=" && i + 1 < parsed_query.len() {
+            columns.push(parsed_query[i - 1].to_string());
+            values.push(parsed_query[i + 1].to_string());
+            } else if parsed_query[i] == "where" {
+            break;
+            }
+        }
+        let condition = get_condition_columns(&parsed_query);
+        Ok(Query::Update(UpdateQuery {
+            table_name,
+            columns,
+            values,
+            condition,
+        }))
+    }
+}
 
 pub fn parse_query(query: &str) -> Result<(), ErrorType> {
     let parsed_query: Vec<String> = query.split_whitespace().map(|s| s.to_string().to_lowercase()).collect();
@@ -124,6 +168,7 @@ pub fn parse_query(query: &str) -> Result<(), ErrorType> {
         "select" => Box::new(SelectParser),
         "insert" => Box::new(InsertParser),
         "delete" => Box::new(DeleteParser),
+        "update" => Box::new(UpdateParser),
         _ => {
             let error = ErrorType::InvalidSyntax;
             error::print_error(error, "Comando no válido");
