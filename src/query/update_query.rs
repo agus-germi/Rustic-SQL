@@ -1,9 +1,50 @@
-use crate::{error, extras, insert_query::{self}, query_parser::UpdateQuery, select_query};
 use std::{fs::{self, File}, io::{self, BufRead, BufReader, BufWriter, Write}};
-use error::{ErrorType, print_error};
-use insert_query::generate_row_to_insert;
-use extras::{get_column_index, write_csv};
-use select_query::filter_row;
+
+use super::{insert_query::{generate_row_to_insert, write_csv}, select_query::filter_row, CommandParser, Query};
+use crate::{error::{self, print_error, ErrorType}, extras::{get_column_index, get_condition_columns}};
+
+#[derive(Debug)]
+pub struct UpdateQuery {
+    pub table_name: String,
+    pub columns: Vec<String>,
+    pub values: Vec<String>,
+    pub condition: Vec<String>,
+}
+
+pub struct UpdateParser;
+impl CommandParser for UpdateParser {
+    fn parse(&self, parsed_query: Vec<String>) -> Result<Query, ErrorType> {
+        let table_name: String;
+        //TODO: get rid of duplicated code
+        let mut index_name = 0;
+        let table_name_index = parsed_query.iter().position(|x| x == "update");
+        if let Some(mut index) = table_name_index{
+            table_name = parsed_query[index + 1].to_string();
+            index_name = index + 1;
+        } else {
+            error::print_error(ErrorType::InvalidSyntax, "Sintaxis inválida, falta 'update'");
+            return Err(ErrorType::InvalidSyntax);
+        }
+        let mut columns = Vec::new();
+        let mut values = Vec::new();
+        //TODO: find a way of getting it done better
+        for i in (index_name + 1)..parsed_query.len() {
+            if parsed_query[i] == "=" && i + 1 < parsed_query.len() {
+            columns.push(parsed_query[i - 1].to_string());
+            values.push(parsed_query[i + 1].to_string());
+            } else if parsed_query[i] == "where" {
+            break;
+            }
+        }
+        let condition = get_condition_columns(&parsed_query);
+        Ok(Query::Update(UpdateQuery {
+            table_name,
+            columns,
+            values,
+            condition,
+        }))
+    }
+}
 
 
 //  Update FUNCTION --

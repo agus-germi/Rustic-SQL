@@ -1,19 +1,12 @@
-mod error;
-mod query_parser;
-mod extras;
-mod select_query;
-mod insert_query;
-mod delete_query;
-mod update_query;
-use crate::delete_query::delete;
-use crate::insert_query::insert;
-
 use std::env;
-use error::{ErrorType, print_error};
-use query_parser::{parse_query, Query};
-use update_query::update;
-use extras::{  get_int_value, get_str_value, Value};
-use select_query::select;
+use error::{print_error, ErrorType};
+use extras::{get_int_value, get_str_value, Value};
+use query::{delete_query::delete, insert_query::insert, parse_query, select_query::select, update_query::update, Query};
+
+pub mod query;
+pub mod error;
+pub mod extras;
+
 
 
 #[derive(Debug)]
@@ -36,8 +29,8 @@ fn main() {
     }
     let query = &args[2];
     
-    if let Err(error) = parse_query(query) {
-        return;
+    if let Err(_error) = parse_query(query) {
+        return ();
     }
 }
 // -- MINI FILTER FUNCTION --
@@ -82,11 +75,11 @@ trait Operations {
      let int_value2 = get_int_value(&value2);
      let str_value1 = get_str_value(&value1);
      let str_value2 = get_str_value(&value2);
-     match (int_value1, int_value2, str_value1, str_value2) {
-       (Some(i1), Some(i2), _, _) => i1 < i2,
-       (_, _, Some(s1), Some(s2)) => false, //FIXME: turn it into a syntax error
-       _ => false,
-     }
+    match (int_value1, int_value2, str_value1, str_value2) {
+        (Some(i1), Some(i2), _, _) => i1 < i2,
+        (_, _, Some(s1), Some(s2)) => false, 
+        _ => false,
+    }
    }
  } 
 

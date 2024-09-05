@@ -1,4 +1,4 @@
-use std::fs::{File, OpenOptions};
+use std::fs::OpenOptions;
 use std::io::Write;
 
 use crate::error::print_error;
@@ -113,6 +113,7 @@ pub fn write_csv(path: &str, values: Option<Vec<String>>) {
         if let Err(e) = file.write_all(line.as_bytes()) {
           let error = ErrorType::InvalidTable;
           print_error(error, "No se pudo escribir en el archivo");
+          return;
         } 
     } 
   }

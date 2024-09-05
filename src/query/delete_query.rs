@@ -1,9 +1,39 @@
-use std::fs::{self, File};
-use std::io::{self, BufRead, BufReader, BufWriter, Write}; 
+use std::{fs::{self, File}, io::{self, BufRead, BufReader, BufWriter, Write}};
 
-use crate::query_parser::DeleteQuery;
-use crate::error::{print_error, ErrorType};
-use crate::select_query::filter_row; 
+use super::{select_query::filter_row, CommandParser, Query};
+use crate::{error::{self, print_error, ErrorType}, extras::{cleaned_values, get_condition_columns}};
+
+
+
+
+#[derive(Debug)]
+pub struct DeleteQuery {
+    pub table_name: String,
+    pub condition: Vec<String>,
+}
+
+pub struct DeleteParser;
+impl CommandParser for DeleteParser {
+    fn parse(&self, parsed_query: Vec<String>) -> Result<Query, ErrorType> {
+        let table_name: String;
+        //TODO: get rid of duplicated code
+        let table_name_index = parsed_query.iter().position(|x| x == "from");
+        if let Some(index) = table_name_index{
+            table_name = parsed_query[index + 1].to_string();
+        }else {
+            error::print_error(ErrorType::InvalidSyntax, "Sintaxis inválida, falta 'from'");
+            return Err(ErrorType::InvalidSyntax);
+        }
+        let condition = cleaned_values(get_condition_columns(&parsed_query));
+
+        Ok(Query::Delete(DeleteQuery {
+            table_name,
+            condition,
+        }))
+    }
+    
+}
+
 
 pub fn delete(delete_query: DeleteQuery) -> Result<(), ErrorType>{
     let relative_path = format!("{}.csv", delete_query.table_name);
@@ -23,7 +53,7 @@ pub fn delete(delete_query: DeleteQuery) -> Result<(), ErrorType>{
             if let Ok(line) = line {
                 let values: Vec<String> = line.split(",").map(|s| s.to_string()).collect();
                 if filter_row(&values, &delete_query.condition, &headers){
-                    delete_line(&relative_path, index);
+                    let _ = delete_line(&relative_path, index);
                     index -= 1;
                 };
             } else {
