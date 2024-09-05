@@ -8,8 +8,9 @@ use crate::delete_query::delete;
 
 use std::{env, fs::{self, File, OpenOptions}, io::{self, BufRead, BufReader, BufWriter, Write}};
 use error::{ErrorType, print_error};
+use insert_query::generate_row_to_insert;
 use crate::insert_query::insert;
-use extras::{  get_column_index, get_int_value, get_str_value,  Value};
+use extras::{   get_column_index, get_int_value, get_str_value, write_csv, Value};
 use query_parser::{parse_query, InsertQuery, Query, UpdateQuery};
 use select_query::{filter_row, select};
 use std::io::Cursor;
@@ -115,39 +116,32 @@ pub fn update(query: UpdateQuery) -> Result<(), ErrorType> {
         let headers: Vec<&str> = header.split(',').collect();
         
         if query.condition.is_empty(){
-            //let row_to_insert = generate_row_to_insert(&headers, &query.columns, &query.values);
-            //write_csv(&relative_path, Some(row_to_insert));
-        }
-        let mut line_number = 0;
-        let mut updated_line: Vec<String> = Vec::new();
-        let mut i = 0;
-        for line in reader.lines(){
-            i += 1;
-            if let Ok(line) = line {
-                let mut values: Vec<String> = line.split(",").map(|s: &str| s.to_string()).collect();
-                if filter_row(&values, &query.condition, &headers){
-                    println!("{:?}", values);
-                    updated_line = create_updated_line(&headers, &query.columns,&query.values, &values);
-                    println!("{:?}", updated_line);
-
-                    line_number = i;
-                    println!("indice {:?}", line_number);
-
-
-                };
-            } else {
-                // TODO: handle error
-            }
+            let row_to_insert = generate_row_to_insert(&headers, &query.columns, &query.values);
+            write_csv(&relative_path, Some(row_to_insert));
+        }else{
+            let mut line_number = 0;
+            let mut updated_line: Vec<String> = Vec::new();
+            let mut i = 0;
+            for line in reader.lines(){
+                i += 1;
+                if let Ok(line) = line {
+                    let mut values: Vec<String> = line.split(",").map(|s: &str| s.to_string()).collect();
+                    if filter_row(&values, &query.condition, &headers){
+                        updated_line = create_updated_line(&headers, &query.columns,&query.values, &values);
+                        line_number = i;
+                    };
+                } else {
+                    // TODO: handle error
+                }
             
+            }
+            update_line(relative_path.as_str(), line_number, Some(&updated_line));
         }
-        println!(" LINEA: {:?}", updated_line);
-        update_line(relative_path.as_str(), line_number, Some(&updated_line));
 
     } else {
         print_error(ErrorType::InvalidTable, "No se pudo abrir el archivo");
         return Err(ErrorType::InvalidTable);}
     Ok(())
-
 }
 
 pub fn create_updated_line(headers: &Vec<&str>, columns: &Vec<String>, values_to_update: &Vec<String>,values: &Vec<String>) -> Vec<String> {

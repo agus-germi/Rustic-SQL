@@ -19,7 +19,7 @@ pub fn insert(query: InsertQuery) -> Result<(), ErrorType>{
         reader.read_line(&mut header);
         let header = header.trim();
         let headers: Vec<&str> = header.split(',').collect();
-        let row_to_insert = generate_row_to_insert(&headers, query);
+        let row_to_insert = generate_row_to_insert(&headers,&query.columns, &query.values);
         
         write_csv(&relative_path, Some(row_to_insert));
 
@@ -32,16 +32,15 @@ pub fn insert(query: InsertQuery) -> Result<(), ErrorType>{
 
 }
 
-pub fn generate_row_to_insert(headers: &Vec<&str>,query: InsertQuery ) -> Vec<String> {
+pub fn generate_row_to_insert(headers: &Vec<&str>, columns: &Vec<String>, values: &Vec<String>  ) -> Vec<String> {
     let mut row_to_insert: Vec<String> = vec![String::new(); headers.len()];        
     for i in headers{
-        for j in &query.columns{
+        for j in columns{
             if j == i {
-                println!("vector {:?}", row_to_insert);
-                let index = get_column_index(&headers, &j);
-                let index = index as usize;
 
-                row_to_insert[index].push_str(&query.values[index-1]);
+                let n_column = get_column_index(&headers, &j) as usize;
+                let n_value = get_column_index(&columns.iter().map(|s| s.as_str()).collect::<Vec<&str>>(), &i) as usize;
+                row_to_insert[n_column] = values[n_value].to_string();
             }
             else {
                 let index = get_column_index(&headers, &i);

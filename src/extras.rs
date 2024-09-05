@@ -79,25 +79,7 @@ pub fn cleaned_values(columns: Vec<String>) -> Vec<String> {
            .collect()
 }
 
-pub fn generate_row_to_insert(headers: &Vec<&str>,columns: &Vec<String>, values: &Vec<String> ) -> Vec<String> {
-    let mut row_to_insert: Vec<String> = vec![String::new(); headers.len()];        
-    for i in headers{
-        for j in columns{
-            if j == *i {
-                let index = get_column_index(&headers, &j);
-                let index = index as usize;
 
-                row_to_insert[index].push_str(&values[index-1]);
-            }
-            else {
-                let index = get_column_index(&headers, &i);
-                let index = index as usize;
-                row_to_insert[index].push_str("");
-            }
-        }
-    }
-    row_to_insert
-}
 pub fn write_csv(path: &str, values: Option<Vec<String>>) {
   
     let file = OpenOptions::new()
