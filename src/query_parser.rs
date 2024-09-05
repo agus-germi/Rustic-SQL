@@ -15,6 +15,7 @@ pub struct SelectQuery {
     pub table_name: String,
     pub columns: Vec<String>,
     pub condition: Vec<String>,
+    pub order_by: Vec<String>,
 }
 
 #[derive(Debug)]
@@ -54,14 +55,27 @@ impl CommandParser for SelectParser {
             error::print_error(ErrorType::InvalidSyntax, "Sintaxis inválida, falta 'from'");
             return Err(ErrorType::InvalidSyntax);
         }
-        let columns = get_columns(&parsed_query);
-        let condition = get_condition_columns(&parsed_query);
+        let columns = cleaned_values(get_columns(&parsed_query));
+        let mut condition = get_condition_columns(&parsed_query);
 
+        let mut order_index = 0;
+        let mut order_by: Vec<String> = Vec::new();
+        let _order_index = condition.iter().position(|x| x == "order").and_then(|index| {
+            if index + 1 < condition.len() && condition[index + 1] == "by" {
+                order_index = index + 2;
+                order_by = cleaned_values(condition[order_index ..].to_vec());
+                condition = condition[..index].to_vec();
+                Some(index)
+            } else {
+                None
+            }
+        });
 
         Ok(Query::Select(SelectQuery {
             table_name,
             columns,
             condition,
+            order_by,
 
         }))
     }

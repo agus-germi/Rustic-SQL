@@ -75,7 +75,7 @@ pub fn get_column_index(headers:&Vec<&str>, column_name: &str) -> isize {
 
 pub fn cleaned_values(columns: Vec<String>) -> Vec<String> {
     columns.iter()
-           .map(|col| col.trim_matches(|c| c == '(' || c == ')' || c == ',' || c == '\'').trim().to_string())
+           .map(|col| col.trim_matches(|c| c == '(' || c == ')' || c == ',' || c == '\'' ).trim().to_string())
            .collect()
 }
 

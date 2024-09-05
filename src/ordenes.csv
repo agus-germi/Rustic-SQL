@@ -7,6 +7,5 @@ id,id_cliente,producto,cantidad
 106,5,Impresora,1
 107,6,Altavoces,1
 108,4,Auriculares,1
-109,5,Laptop,1
-110,6,Teléfono,2
-
+109,5,Laptop,4
+110,6,Teléfono,2,

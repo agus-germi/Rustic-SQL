@@ -1,10 +1,8 @@
-
-
 use std::fs::{File, OpenOptions};
 use std::io::{self, BufRead, Write}; 
 use crate::error::{print_error, ErrorType};
 use crate::extras::get_column_index;
-use crate::InsertQuery;
+use crate::query_parser::InsertQuery;
 
 
 // -- INSERT FUNCTION --
@@ -16,7 +14,7 @@ pub fn insert(query: InsertQuery) -> Result<(), ErrorType>{
         let mut header: String = String::new();
 
         //Obtengo los headers
-        reader.read_line(&mut header);
+        let _ = reader.read_line(&mut header);
         let header = header.trim();
         let headers: Vec<&str> = header.split(',').collect();
         let row_to_insert = generate_row_to_insert(&headers,&query.columns, &query.values);
