@@ -1,7 +1,7 @@
 use std::{collections::HashMap, fs::File, io::{self, BufRead}};
 
 use super::{CommandParser, Query};
-use crate::{error::{self, print_error, ErrorType}, extras::{cast_to_value, cleaned_values, get_column_index, get_columns, get_condition_columns, get_int_value, get_str_value}, filter};
+use crate::{error::{self, print_error, ErrorType}, extras::{cast_to_value, cleaned_values, get_column_index, get_columns, get_condition_columns, get_int_value, get_str_value, Value}, filter};
 
 #[derive(Debug)]
 pub struct SelectQuery {
@@ -58,8 +58,9 @@ pub fn filter_row(row: &Vec<String>, condition: &Vec<String>, headers: &Vec<&str
     let operator = condition[1].as_str();
     let value = cast_to_value(&row[column_condition_index as usize]);
     if condition.len() > 3 {
-        //apply_logicOp(row, condition, headers);
-        return false;
+        let (results, ops) = extract_bools_and_operators(condition, row, headers);
+        let final_result = evaluate_logical_conditions(results, ops);
+        return final_result;
     }else{
         return filter(value, column_condition_value, operator);
     }
@@ -83,8 +84,7 @@ pub fn select(query: SelectQuery) -> Result<(), ErrorType>{
             if let Ok(line) = line {
                 let values: Vec<String> = line.split(",").map(|s| s.to_string()).collect();
                 if filter_row(&values, &query.condition, &headers){
-                    result_table.push(line);
-                };
+                    result_table.push(line);};
             } else {
                 // TODO: handle error
             }
@@ -118,61 +118,6 @@ pub fn print_selected_rows(mut result_table:  Vec<String>, query: &SelectQuery, 
     }
 }
 
-pub fn apply_and(row: &Vec<String>, condition: &Vec<String>, headers: &Vec<&str>) {   
-    let mut i = 3 as usize;
-    let mut final_index = 7 as usize;
-    let mut resultado = true;
-    println!("FILA: {:?}", row);
-
-    while final_index <= condition.len() && resultado != false {
-        println!("1era cond: {:?}", condition[.. i].to_vec() );
-        let first_condition = filter_row(row, &condition[.. i].to_vec(), headers);
-        println!("resultado: {:?}", first_condition);
-        println!("operador: {:?}", &condition[i]);
-        let operator = &condition[i];
-        println!("2da cond: {:?}", condition[i + 1 .. final_index].to_vec() );
-        let second_condition = filter_row(row, &condition[i + 1 .. final_index].to_vec(), headers);
-        println!("resultado: {:?}", second_condition);
-        if operator == "and" {
-            resultado = first_condition && second_condition;
-            println!("RESULTADO FINAL: {:?}", first_condition && second_condition);
-
-        } 
-     
-        println!("RESULTADO FINAL: {:?}", first_condition && second_condition);
-        i += 4;
-        final_index += 4;
-
-    }
-}
-trait LogicOp {
-    fn apply_operation(&self, first_cond: bool, second_cond: bool) -> bool;  
-}
-struct AndOperator;
-struct OrOperator;
-
-impl LogicOp for AndOperator {
-    fn apply_operation(&self, first_cond: bool, second_cond: bool) -> bool {
-        // Implementation for AndOperator
-        true
-    }
-}
-
-impl LogicOp for OrOperator {
-    fn apply_operation(&self, first_cond: bool, second_cond: bool) -> bool {
-        // Implementation for OrOperator
-        true
-    }
-}
-
-pub fn logic_op(first_cond: bool, second_cond: bool, operator: &str) -> bool {
-    let operator: Box<dyn LogicOp> = match operator {
-        "and" => Box::new(AndOperator),
-        "or" => Box::new(OrOperator),
-        _ => return false,
-    };
-    operator.apply_operation( first_cond, second_cond)
-}
 
 pub fn parse_order_by(order_by: &Vec<String>, headers: &Vec<&str>) -> (HashMap<usize,String> , Vec<usize>) {
     let mut order_map = HashMap::new();
@@ -200,8 +145,8 @@ pub fn parse_order_by(order_by: &Vec<String>, headers: &Vec<&str>) -> (HashMap<u
     (order_map, insertion_order)
 }
 
-
 fn order_rows(result_table: &mut Vec<String>, order_map:HashMap<usize,String>, insertion_order: Vec<usize>) {
+
     println!("{:?}", insertion_order);
     result_table.sort_by(|a, b| 
     {
@@ -247,4 +192,46 @@ fn order_rows(result_table: &mut Vec<String>, order_map:HashMap<usize,String>, i
 
         std::cmp::Ordering::Equal
     });
+}
+
+
+fn extract_bools_and_operators(condition: &Vec<String>, row: &Vec<String>, headers: &Vec<&str>) -> (Vec<bool>, Vec<String>) {
+    let mut bools = Vec::new();
+    let mut ops = Vec::new();
+    let mut i = 0;
+
+    while i < condition.len() {
+        if condition[i] == "and" || condition[i] == "or" || condition[i] == "not" {
+            ops.push(condition[i].to_string());
+            i += 1;
+        } else if i + 2 < condition.len() {
+            let column = &condition[i];
+            let operator = &condition[i + 1];
+            let value = &condition[i + 2];
+            let column_index = get_column_index(headers, column) as usize;
+            let column_value = cast_to_value(&row[column_index]);
+            let condition_value = cast_to_value(value);
+            let result = filter(column_value, condition_value, operator);
+            bools.push(result);
+
+            i += 3;
+        }
+    }
+    println!("{:?}", row);
+    (bools, ops)
+}
+
+fn evaluate_logical_conditions(bools: Vec<bool>, ops: Vec<String>) -> bool {
+    let mut result = bools[0];
+
+    for (i, op) in ops.iter().enumerate() {
+        match op.as_str() {
+            "and" => result = result && bools[i + 1],
+            "or" => result = result || bools[i + 1],
+            "not" => result = !result,
+            _ => {}
+        }
+    }
+
+    result
 }
