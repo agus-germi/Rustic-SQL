@@ -14,9 +14,7 @@ pub struct InsertQuery {
 pub struct InsertParser;
 
 impl CommandParser for InsertParser {
-    fn parse(&self, parsed_query: Vec<String>) -> Result<Query, ErrorType> {
-        let table_name: String;
-        let mut table_index = 0;
+    fn parse(&self, parsed_query: Vec<String>) -> Result<Query, ErrorType> {        let mut table_index = 0;
 
         let _table_name_index = parsed_query.iter().position(|x| x == "insert").and_then(|index| {
             if index + 1 < parsed_query.len() && parsed_query[index + 1] == "into" {
@@ -119,7 +117,7 @@ pub fn write_csv(path: &str, values: Option<Vec<String>>) {
         line.push('\n'); 
   
           // 2nd) escribo la linea
-        if let Err(e) = file.write_all(line.as_bytes()) {
+        if let Err(_e) = file.write_all(line.as_bytes()) {
           let error = ErrorType::InvalidTable;
           print_error(error, "No se pudo escribir en el archivo");
         } 

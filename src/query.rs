@@ -48,7 +48,7 @@ pub fn parse_query(query: &str) -> Result<(), ErrorType> {
             return Err(ErrorType::InvalidSyntax);
         }
     };
-    let query = match command.parse(parsed_query) {
+    let _query = match command.parse(parsed_query) {
         Ok(query) => execute(query),
         Err(error) => return Err(error),
     };
