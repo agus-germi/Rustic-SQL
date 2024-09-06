@@ -110,7 +110,7 @@ pub fn write_csv(path: &str, values: Option<Vec<String>>) {
         line.push('\n'); 
   
           // 2nd) escribo la linea
-        if let Err(e) = file.write_all(line.as_bytes()) {
+        if let Err(_e) = file.write_all(line.as_bytes()) {
           let error = ErrorType::InvalidTable;
           print_error(error, "No se pudo escribir en el archivo");
           return;

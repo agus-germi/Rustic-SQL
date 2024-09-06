@@ -16,9 +16,9 @@ impl CommandParser for UpdateParser {
     fn parse(&self, parsed_query: Vec<String>) -> Result<Query, ErrorType> {
         let table_name: String;
         //TODO: get rid of duplicated code
-        let mut index_name = 0;
+        let index_name;
         let table_name_index = parsed_query.iter().position(|x| x == "update");
-        if let Some(mut index) = table_name_index{
+        if let Some(index) = table_name_index{
             table_name = parsed_query[index + 1].to_string();
             index_name = index + 1;
         } else {
@@ -52,10 +52,8 @@ pub fn update(query: UpdateQuery) -> Result<(), ErrorType> {
     let relative_path = format!("{}.csv", query.table_name);
     if let Ok(file) = File::open(&relative_path) {
         let mut reader: io::BufReader<File> = io::BufReader::new(file);
-
         let mut header: String = String::new();
 
-        //Obtengo los headers
         let _ = reader.read_line(&mut header);
         let header = header.trim();
         let headers: Vec<&str> = header.split(',').collect();
@@ -64,8 +62,8 @@ pub fn update(query: UpdateQuery) -> Result<(), ErrorType> {
             let row_to_insert = generate_row_to_insert(&headers, &query.columns, &query.values);
             write_csv(&relative_path, Some(row_to_insert));
         }else{
-            let mut line_number = 0;
-            let mut updated_line: Vec<String> = Vec::new();
+            let mut line_number;
+            let mut updated_line;
             let mut i = 0;
             for line in reader.lines(){
                 i += 1;
@@ -78,12 +76,11 @@ pub fn update(query: UpdateQuery) -> Result<(), ErrorType> {
 
                     };
                 } else {
-                    // TODO: handle error
+                    print_error(ErrorType::InvalidTable, "No se pudo leer el archivo");
+                    return Err(ErrorType::InvalidTable);
                 }
-            
             }
         }
-
     } else {
         print_error(ErrorType::InvalidTable, "No se pudo abrir el archivo");
         return Err(ErrorType::InvalidTable);}

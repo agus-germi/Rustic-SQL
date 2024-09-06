@@ -1,7 +1,7 @@
 use std::{collections::HashMap, fs::File, io::{self, BufRead}};
 
 use super::{CommandParser, Query};
-use crate::{error::{self, print_error, ErrorType}, extras::{cast_to_value, cleaned_values, get_column_index, get_columns, get_condition_columns, get_int_value, get_str_value, Value}, filter};
+use crate::{error::{self, print_error, ErrorType}, extras::{cast_to_value, cleaned_values, get_column_index, get_columns, get_condition_columns, get_int_value, get_str_value}, filter};
 
 #[derive(Debug)]
 pub struct SelectQuery {
@@ -73,11 +73,11 @@ pub fn select(query: SelectQuery) -> Result<(), ErrorType>{
     if let Ok(file) = File::open(&relative_path) {
         let mut reader: io::BufReader<File> = io::BufReader::new(file);
         let mut header: String = String::new();
-        reader.read_line(&mut header);
+        let _ = reader.read_line(&mut header);
         let header = header.trim();
         let headers: Vec<&str> = header.split(',').collect();
 
-        let mut lines = reader.lines();
+        let lines = reader.lines();
         let mut result_table: Vec<String> = Vec::new();
 
         for line in lines{
@@ -86,7 +86,8 @@ pub fn select(query: SelectQuery) -> Result<(), ErrorType>{
                 if filter_row(&values, &query.condition, &headers){
                     result_table.push(line);};
             } else {
-                // TODO: handle error
+                print_error(ErrorType::InvalidTable, "No se pudo leer el archivo");
+                return Err(ErrorType::InvalidTable);
             }
         }
         let (order_map, insertion_order) = parse_order_by(&query.order_by, &headers);
@@ -99,10 +100,9 @@ pub fn select(query: SelectQuery) -> Result<(), ErrorType>{
 }
 
 pub fn print_selected_rows(mut result_table:  Vec<String>, query: &SelectQuery, headers: &Vec<&str>) {
-    let mut table = result_table;
-    table.insert(0, headers.join(","));
+    result_table.insert(0, headers.join(","));
     if query.columns[0] == "*" {
-        for row in table {
+        for row in result_table {
             println!("{}", row);
         }
     } else {
@@ -111,7 +111,7 @@ pub fn print_selected_rows(mut result_table:  Vec<String>, query: &SelectQuery, 
             let column_index = get_column_index(&headers, column);
             selected_indices.push(column_index);            
         }
-        for row in table {
+        for row in result_table {
             let selected_row: Vec<&str> = selected_indices.iter().map(|&i| row.split(',').collect::<Vec<&str>>()[i as usize]).collect();
             println!("{}", selected_row.join(","));
         }
@@ -123,10 +123,10 @@ pub fn parse_order_by(order_by: &Vec<String>, headers: &Vec<&str>) -> (HashMap<u
     let mut order_map = HashMap::new();
     let mut insertion_order: Vec<usize> = Vec::new();
     let mut i = 0;
-    let mut column_index = 0;
+    let mut column_index;
     while i < order_by.len() {
         let column = &order_by[i];
-        if (i + 1 < order_by.len()){
+        if i + 1 < order_by.len(){
             if &order_by[i + 1 ] == "asc" || &order_by[i + 1] == "desc" {
                 column_index = get_column_index(headers, column) as usize;
                 insertion_order.push(column_index);
@@ -146,16 +146,12 @@ pub fn parse_order_by(order_by: &Vec<String>, headers: &Vec<&str>) -> (HashMap<u
 }
 
 fn order_rows(result_table: &mut Vec<String>, order_map:HashMap<usize,String>, insertion_order: Vec<usize>) {
-
-    println!("{:?}", insertion_order);
     result_table.sort_by(|a, b| 
-    {
-        let columns_a: Vec<&str> = a.split(',').collect();
+    {   let columns_a: Vec<&str> = a.split(',').collect();
         let columns_b: Vec<&str> = b.split(',').collect();
-        let mut i = 0;
+        let i = 0;
         for (&index, order) in &order_map {
-            if (index == insertion_order[i]) {
-                println!("index: {:?}", insertion_order[i]);
+            if index == insertion_order[i] {
                 let val_a = columns_a[index];
                 let val_b = columns_b[index];
                 let val_a = cast_to_value(val_a);
@@ -164,20 +160,13 @@ fn order_rows(result_table: &mut Vec<String>, order_map:HashMap<usize,String>, i
                 let b_str = get_str_value(&val_b);
                 let a_int = get_int_value(&val_a);
                 let b_int = get_int_value(&val_b);
-
-
                 let cmp = match (a_int, b_int, a_str, b_str) {
                     (Some(i1), Some(i2), _, _) => i1.cmp(&i2),
                     (_, _, Some(s1), Some(s2)) => s1.cmp(&s2),
                     _ => std::cmp::Ordering::Equal,
                 };
-    
                 match order.as_str() {
-                    "asc" => {
-                        if cmp != std::cmp::Ordering::Equal {
-                            return cmp;
-                        }
-                    }
+                    "asc" => {if cmp != std::cmp::Ordering::Equal { return cmp;}}
                     "desc" => {
                         if cmp != std::cmp::Ordering::Equal {
                             return cmp.reverse();

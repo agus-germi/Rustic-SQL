@@ -63,7 +63,7 @@ trait Operations {
      let str_value2 = get_str_value(&value2);
      match (int_value1, int_value2, str_value1, str_value2) {
        (Some(i1), Some(i2), _, _) => i1 > i2,
-       (_, _, Some(s1), Some(s2)) => false, //FIXME: turn it into a syntax error
+    (_, _, Some(_s1), Some(_s2)) => false, 
        _ => false,
      }
    }
@@ -77,7 +77,7 @@ trait Operations {
      let str_value2 = get_str_value(&value2);
     match (int_value1, int_value2, str_value1, str_value2) {
         (Some(i1), Some(i2), _, _) => i1 < i2,
-        (_, _, Some(s1), Some(s2)) => false, 
+        (_, _, Some(_s1), Some(_s2)) => false, 
         _ => false,
     }
    }
@@ -95,7 +95,6 @@ trait Operations {
 
 
 
-
 // --
 pub fn execute(query: Query) {
     match query {
@@ -109,7 +108,6 @@ pub fn execute(query: Query) {
             let _ = delete(delete_query);
         }
         Query::Update(update_query ) => {
-            println!("{:?}", update_query);
             let _ = update(update_query);
         }
     }

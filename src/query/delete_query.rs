@@ -57,8 +57,8 @@ pub fn delete(delete_query: DeleteQuery) -> Result<(), ErrorType>{
                     index -= 1;
                 };
             } else {
-                // TODO: handle error
-                println!("Error");
+                print_error(ErrorType::InvalidTable, "No se pudo leer el archivo");
+                return Err(ErrorType::InvalidTable);
             }
         }
     } else {
