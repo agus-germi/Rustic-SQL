@@ -1,18 +1,15 @@
-pub mod select_query;
-pub mod insert_query;
 pub mod delete_query;
+pub mod insert_query;
+pub mod select_query;
 pub mod update_query;
-
 
 use delete_query::{DeleteParser, DeleteQuery};
 use insert_query::{InsertParser, InsertQuery};
 use select_query::{SelectParser, SelectQuery};
 use update_query::{UpdateParser, UpdateQuery};
 
-use crate::execute;
 use crate::error::{self, ErrorType};
-
-
+use crate::execute;
 
 #[derive(Debug)]
 pub enum Query {
@@ -23,13 +20,14 @@ pub enum Query {
 }
 
 trait CommandParser {
-    fn parse(&self,  parsed_query: Vec<String>) -> Result<Query, ErrorType> ;
-    }
-
-
+    fn parse(&self, parsed_query: Vec<String>) -> Result<Query, ErrorType>;
+}
 
 pub fn parse_query(query: &str) -> Result<(), ErrorType> {
-    let parsed_query: Vec<String> = query.split_whitespace().map(|s| s.to_string().to_lowercase()).collect();
+    let parsed_query: Vec<String> = query
+        .split_whitespace()
+        .map(|s| s.to_string().to_lowercase())
+        .collect();
     if parsed_query.len() < 4 {
         //Entiendo que no puede haber una consulta con menos de 4 palabras
         let error = ErrorType::InvalidSyntax;

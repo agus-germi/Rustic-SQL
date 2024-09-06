@@ -4,7 +4,7 @@ use std::io::Write;
 use crate::error::print_error;
 use crate::error::ErrorType;
 
-#[derive(Debug, PartialEq)] 
+#[derive(Debug, PartialEq)]
 pub enum Value {
     Int(i32),
     Str(String),
@@ -24,7 +24,7 @@ pub fn get_int_value(value: &Value) -> Option<i32> {
         Value::Str(_) => None,
     }
 }
-  
+
 pub fn get_str_value(value: &Value) -> Option<String> {
     match value {
         Value::Int(_) => None,
@@ -59,10 +59,9 @@ pub fn get_condition_columns(parsed_query: &Vec<String>) -> Vec<String> {
         }
     }
     condition_columns
-    
 }
 
-pub fn get_column_index(headers:&Vec<&str>, column_name: &str) -> isize {
+pub fn get_column_index(headers: &Vec<&str>, column_name: &str) -> isize {
     let mut index = 0;
     for header in headers {
         if *header == column_name {
@@ -74,49 +73,48 @@ pub fn get_column_index(headers:&Vec<&str>, column_name: &str) -> isize {
 }
 
 pub fn cleaned_values(columns: Vec<String>) -> Vec<String> {
-    columns.iter()
-           .map(|col| col.trim_matches(|c| c == '(' || c == ')' || c == ',' || c == '\'' ).trim().to_string())
-           .collect()
+    columns
+        .iter()
+        .map(|col| {
+            col.trim_matches(|c| c == '(' || c == ')' || c == ',' || c == '\'')
+                .trim()
+                .to_string()
+        })
+        .collect()
 }
-
-
+//FIXME: there is an equal function
 pub fn write_csv(path: &str, values: Option<Vec<String>>) {
-  
     let file = OpenOptions::new()
         .append(true)
         .create(true)
         .open(&path)
         .map_err(|e| e.to_string());
-  
     //TODO: get rid of this duplucated code in the open_file function
     let mut file = match file {
         Ok(f) => f,
         Err(e) => {
-  
             println!("Failed to open the file: {}", e);
             return;
         }
     };
-  
     // 1st) creo la linea
     let mut line = String::new();
     if let Some(values) = values {
-        for (i, value) in values.iter().enumerate() { 
+        for (i, value) in values.iter().enumerate() {
             if i > 0 {
-                line.push(','); 
+                line.push(',');
             }
-            line.push_str(value); 
+            line.push_str(value);
         }
-        line.push('\n'); 
-  
-          // 2nd) escribo la linea
+        line.push('\n');
+        // 2nd) escribo la linea
         if let Err(_e) = file.write_all(line.as_bytes()) {
-          let error = ErrorType::InvalidTable;
-          print_error(error, "No se pudo escribir en el archivo");
-          return;
-        } 
-    } 
-  }
+            let error = ErrorType::InvalidTable;
+            print_error(error, "No se pudo escribir en el archivo");
+            return;
+        }
+    }
+}
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -146,7 +144,10 @@ mod tests {
     #[test]
     fn test_get_str_value_some() {
         let value = Value::Str("hello".to_string());
-        assert_eq!(get_str_value(&value), Some("hello".to_string().to_lowercase()));
+        assert_eq!(
+            get_str_value(&value),
+            Some("hello".to_string().to_lowercase())
+        );
     }
 
     #[test]
@@ -166,11 +167,13 @@ mod tests {
 
     #[test]
     fn test_get_condition_columns_with_where() {
-        let parsed_query = vec!["select", "column1", "from", "table", "where", "column1", "=", "42"]
-            .iter()
-            .map(|&s| s.to_string())
-            .collect::<Vec<String>>();
-        let length= 3;
+        let parsed_query = vec![
+            "select", "column1", "from", "table", "where", "column1", "=", "42",
+        ]
+        .iter()
+        .map(|&s| s.to_string())
+        .collect::<Vec<String>>();
+        let length = 3;
         assert_eq!(get_condition_columns(&parsed_query).len(), length);
     }
 
