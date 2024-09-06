@@ -74,13 +74,14 @@ pub fn update(query: UpdateQuery) -> Result<(), ErrorType> {
                     if filter_row(&values, &query.condition, &headers){
                         updated_line = create_updated_line(&headers, &query.columns,&query.values, &values);
                         line_number = i;
+                        let _ = update_line(relative_path.as_str(), line_number, Some(&updated_line));
+
                     };
                 } else {
                     // TODO: handle error
                 }
             
             }
-            let _ = update_line(relative_path.as_str(), line_number, Some(&updated_line));
         }
 
     } else {
