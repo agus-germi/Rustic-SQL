@@ -157,3 +157,68 @@ fn update_line(file_path: &str, line_index: usize, row: Option<&Vec<String>>) ->
     fs::rename(temp_file_path, file_path)?;
     Ok(())
 }
+
+// Testing -----
+
+#[cfg(test)]
+mod test{
+    use super::*;
+
+    #[test]
+    fn test_update_parser() {
+        let parser = UpdateParser;
+        let input = vec![
+            "update".to_string(),
+            "my_table".to_string(),
+            "column1".to_string(),
+            "=".to_string(),
+            "value1".to_string(),
+            "where".to_string(),
+            "column2".to_string(),
+            "=".to_string(),
+            "value2".to_string(),
+        ];
+    
+        let result = parser.parse(input);
+    
+        if let Ok(Query::Update(update_query)) = result {
+            assert_eq!(update_query.table_name, "my_table");
+            assert_eq!(update_query.columns, vec!["column1".to_string()]);
+            assert_eq!(update_query.values, vec!["value1".to_string()]);
+            assert_eq!(update_query.condition, vec!["column2".to_string(), "=".to_string(), "value2".to_string()]);
+        } 
+    }
+
+    #[test]
+    fn test_create_updated_line() {
+        let headers = vec!["column1", "column2", "column3"];
+        let columns = vec!["column2".to_string()];
+        let values_to_update = vec!["new_value2".to_string()];
+        let values = vec!["value1".to_string(), "value2".to_string(), "value3".to_string()];
+
+        let updated_line = create_updated_line(&headers, &columns, &values_to_update, &values);
+        assert_eq!(updated_line, vec!["value1".to_string(), "new_value2".to_string(), "value3".to_string()]);
+    }
+
+    #[test]
+    fn test_update_line()  -> Result<(), Box<dyn std::error::Error>>{
+        let test_file = "test_update_line.csv";
+    
+        let mut file = File::create(test_file)?;
+        writeln!(file, "id,id_cliente,producto,cantidad")?;
+        writeln!(file, "1,1,manzana,5")?;
+        writeln!(file, "2,8,pera,3")?;
+    
+        update_line(test_file, 2, Some(&vec!["2".to_string(), "8".to_string(), "pera".to_string(), "10".to_string()]))?;
+        
+        
+        let contents = fs::read_to_string(test_file)?;
+        assert!(contents.contains("2,8,pera,10"));
+    
+        fs::remove_file(test_file)?;
+    
+        Ok(())
+    }
+
+
+}

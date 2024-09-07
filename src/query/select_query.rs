@@ -287,7 +287,7 @@ fn test_select_parser() {
 fn test_filter_row_match() {
     let headers = vec!["id", "name", "age"];
     let condition = vec!["age".to_string(), ">".to_string(), "25".to_string()];
-    let row = vec!["1".to_string(), "Alice".to_string(), "30".to_string()];
+    let row = vec!["1".to_string(), "Agus".to_string(), "30".to_string()];
 
     assert!(filter_row(&row, &condition, &headers));
 }
@@ -296,7 +296,7 @@ fn test_filter_row_match() {
 fn test_filter_row_no_match() {
     let headers = vec!["id", "name", "age"];
     let condition = vec!["age".to_string(), ">".to_string(), "30".to_string()];
-    let row = vec!["1".to_string(), "Alice".to_string(), "25".to_string()];
+    let row = vec!["1".to_string(), "Agus".to_string(), "25".to_string()];
 
     assert!(!filter_row(&row, &condition, &headers));
 }
@@ -319,9 +319,9 @@ fn test_parse_order_by_insertion_order() {
 #[test]
 fn test_order_rows_with_one_condition() {
     let mut result_table = vec![
-        "1,Alice,30".to_string(),
+        "1,Agus,30".to_string(),
         "2,Bob,25".to_string(),
-        "3,Charlie,35".to_string(),
+        "3,Gon,35".to_string(),
     ];
 
     let mut order_map = HashMap::new();
@@ -334,14 +334,14 @@ fn test_order_rows_with_one_condition() {
         result_table,
         vec![
             "2,Bob,25".to_string(),
-            "1,Alice,30".to_string(),
+            "1,Agus,30".to_string(),
             "3,Charlie,35".to_string(),
         ]
     );
 }
 
 #[test]
-fn test_order_rows_with_two_conditions() {
+fn test_order_rows_when_tie() {
     let mut result_table = vec![
         "1,Agus,30".to_string(),
         "2,Bob,25".to_string(),

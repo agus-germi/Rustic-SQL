@@ -164,7 +164,7 @@ mod tests {
 
     #[test]
     fn test_write_csv() -> Result<(), Box<dyn std::error::Error>> {
-        let test_file = "test_write_csv.csv";
+        let test_file: &str = "test_write_csv.csv";
         let data = vec!["1".to_string(), "Alice".to_string(), "30".to_string()];
         
         let _ = std::fs::remove_file(test_file);

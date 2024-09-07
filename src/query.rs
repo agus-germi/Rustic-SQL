@@ -34,7 +34,6 @@ pub fn parse_query(query: &str) -> Result<(), ErrorType> {
         error::print_error(error, "Sintaxis inválida");
         return Err(ErrorType::InvalidSyntax);
     }
-    println!("comando: {:?}", parsed_query[0]);
     let command: Box<dyn CommandParser> = match parsed_query[0].as_str() {
         "select" => Box::new(SelectParser),
         "insert" => Box::new(InsertParser),
@@ -51,4 +50,57 @@ pub fn parse_query(query: &str) -> Result<(), ErrorType> {
         Err(error) => return Err(error),
     };
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_parse_select_query() {
+        let query = "select * from table_name";
+        let result = parse_query(query);
+        assert!(result.is_ok(), "Failed to parse valid SELECT query");
+    }
+
+    #[test]
+    fn test_parse_insert_query() {
+        let query = "insert into table_name values ('value1', 'value2')";
+        let result = parse_query(query);
+        assert!(result.is_ok(), "Failed to parse valid INSERT query");
+    }
+
+    #[test]
+    fn test_parse_update_query() {
+        let query = "update table_name set column1 = 'value1' where column2 = 'value2'";
+        let result = parse_query(query);
+        assert!(result.is_ok(), "Failed to parse valid UPDATE query");
+    }
+
+    #[test]
+    fn test_parse_delete_query() {
+        let query = "delete from table_name where column1 = 'value1'";
+        let result = parse_query(query);
+        assert!(result.is_ok(), "Failed to parse valid DELETE query");
+    }
+
+    #[test]
+    fn test_parse_invalid_command() {
+        let query = "not_a_command table table_name";
+        let result = parse_query(query);
+        assert!(result.is_err(), "Error for invalid command");
+        if let Err(error) = result {
+            assert_eq!(error, ErrorType::InvalidSyntax);
+        }
+    }
+
+    #[test]
+    fn test_parse_short_query() {
+        let query = "insert into";
+        let result = parse_query(query);
+        assert!(result.is_err(), "Error for too short query");
+        if let Err(error) = result {
+            assert_eq!(error, ErrorType::InvalidSyntax);
+        }
+    }
 }
