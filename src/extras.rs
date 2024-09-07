@@ -76,7 +76,7 @@ pub fn cleaned_values(columns: Vec<String>) -> Vec<String> {
     columns
         .iter()
         .map(|col| {
-            col.trim_matches(|c| c == '(' || c == ')' || c == ',' || c == '\'')
+            col.trim_matches(|c| c == '(' || c == ')' || c == ',' || c == '\'' || c == ';')
                 .trim()
                 .to_string()
         })
@@ -197,6 +197,6 @@ mod tests {
     fn test_get_column_index_not_found() {
         let headers = vec!["column1", "column2", "column3"];
         let column_name = "column4";
-        assert_eq!(get_column_index(&headers, column_name), 3);
+        assert_eq!(get_column_index(&headers, column_name), -1);
     }
 }

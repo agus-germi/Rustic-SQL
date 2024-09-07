@@ -10,7 +10,7 @@ use super::{
 };
 use crate::{
     error::{self, print_error, ErrorType},
-    extras::{get_column_index, get_condition_columns},
+    extras::{cleaned_values, get_column_index, get_condition_columns},
 };
 
 #[derive(Debug)]
@@ -20,7 +20,7 @@ pub struct UpdateQuery {
     pub values: Vec<String>,
     pub condition: Vec<String>,
 }
-//[ ]: reduce lines of code in parse function -> 34
+//[ ]: reduce lines of code in parse function -> 36
 pub struct UpdateParser;
 impl CommandParser for UpdateParser {
     fn parse(&self, parsed_query: Vec<String>) -> Result<Query, ErrorType> {
@@ -49,7 +49,9 @@ impl CommandParser for UpdateParser {
                 break;
             }
         }
-        let condition = get_condition_columns(&parsed_query);
+        values = cleaned_values(values);
+        columns = cleaned_values(columns);
+        let condition = cleaned_values(get_condition_columns(&parsed_query));
         Ok(Query::Update(UpdateQuery {
             table_name,
             columns,

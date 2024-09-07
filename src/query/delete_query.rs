@@ -82,3 +82,69 @@ fn delete_line(file_path: &str, line_to_delete: usize) -> io::Result<()> {
     fs::rename(temp_file_path, file_path)?;
     Ok(())
 }
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_delete_parser() {
+        let parser = DeleteParser;
+        let input = vec![
+            "delete".to_string(),
+            "from".to_string(),
+            "test_table".to_string(),
+            "where".to_string(),
+            "id".to_string(),
+            "=".to_string(),
+            "1".to_string(),
+        ];
+
+        let result = parser.parse(input);
+        assert!(result.is_ok());
+
+        if let Ok(Query::Delete(delete_query)) = result {
+            assert_eq!(delete_query.table_name, "test_table");
+            assert_eq!(delete_query.condition, vec!["id".to_string(), "=".to_string(), "1".to_string()]);
+        } 
+    }
+    #[test]
+    fn test_delete_parser_invalid_missing_from() {
+        let parser = DeleteParser;
+        let input = vec![
+            "delete".to_string(),
+            "table".to_string(),
+            "test_table".to_string(),
+        ];
+
+        let result = parser.parse(input);
+        assert!(result.is_err());
+        if let Err(error) = result {
+            assert_eq!(error, ErrorType::InvalidSyntax);
+        }
+    }
+
+    #[test]
+    fn test_delete_function() -> Result<(), Box<dyn std::error::Error>> {
+        let test_file = "test_delete_function.csv";
+        
+        let mut file = File::create(test_file)?;
+        writeln!(file, "id,name")?;
+        writeln!(file, "1,Agus")?;
+        writeln!(file, "2,Tina")?;
+
+        let delete_query = DeleteQuery {
+            table_name: "test_delete_function".to_string(),
+            condition: vec!["id".to_string(), "=".to_string(), "1".to_string()],
+        };
+
+        let _ = delete(delete_query);
+
+        let contents = fs::read_to_string(test_file)?;
+        let expected_result = "id,name\n2,Tina\n"; 
+        assert_eq!(contents, expected_result);
+
+        fs::remove_file(test_file)?; //elimino el archivo de prueba
+
+        Ok(())
+    }
+}

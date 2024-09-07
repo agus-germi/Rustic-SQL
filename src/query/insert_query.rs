@@ -121,3 +121,85 @@ pub fn write_csv(path: &str, values: Option<Vec<String>>) {
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use std::fs;
+
+    use super::*;
+
+    #[test]
+    fn test_insert_parser() {
+        let parser = InsertParser;
+        let input = vec![
+            "insert".to_string(),
+            "into".to_string(),
+            "test_table".to_string(),
+            "name".to_string(),
+            "age".to_string(),
+            "values".to_string(),
+            "Alice".to_string(),
+            "30".to_string(),
+        ];
+
+        let result = parser.parse(input);
+
+        if let Ok(Query::Insert(insert_query)) = result {
+            assert_eq!(insert_query.table_name, "test_table");
+            assert_eq!(insert_query.columns, vec!["name", "age"]);
+            assert_eq!(insert_query.values, vec!["Alice", "30"]);
+        } 
+    }
+
+    #[test]
+    fn test_generate_row_to_insert() {
+        let headers = vec!["id", "name", "age"];
+        let columns = vec!["name".to_string(), "age".to_string()];
+        let values = vec!["Alice".to_string(), "30".to_string()];
+
+        let result = generate_row_to_insert(&headers, &columns, &values);
+
+        assert_eq!(result, vec!["", "Alice", "30"]);
+    }
+
+    #[test]
+    fn test_write_csv() -> Result<(), Box<dyn std::error::Error>> {
+        let test_file = "test_write_csv.csv";
+        let data = vec!["1".to_string(), "Alice".to_string(), "30".to_string()];
+        
+        let _ = std::fs::remove_file(test_file);
+
+        write_csv(test_file, Some(data));
+
+        let contents = std::fs::read_to_string(test_file)?;
+        assert!(contents.contains("1,Alice,30"));
+
+        std::fs::remove_file(test_file)?;
+
+        Ok(())
+    }
+
+    #[test]
+    fn test_insert() -> Result<(), Box<dyn std::error::Error>> {
+    // Set up test file
+    let test_file = "test_insert.csv";
+    
+    let mut file = File::create(test_file)?;
+    writeln!(file, "id,name,age")?;
+
+    let insert_query = InsertQuery {
+        table_name: "test_insert".to_string(),
+        columns: vec!["name".to_string(), "age".to_string()],
+        values: vec!["Alice".to_string(), "30".to_string()],
+    };
+
+    let _ = insert(insert_query);
+
+    let contents = fs::read_to_string(test_file)?;
+    assert!(contents.contains(",Alice,30"));
+
+    fs::remove_file(test_file)?;
+
+    Ok(())
+}
+}

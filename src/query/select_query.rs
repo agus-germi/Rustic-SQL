@@ -35,7 +35,7 @@ impl CommandParser for SelectParser {
             return Err(ErrorType::InvalidSyntax);
         }
         let columns = cleaned_values(get_columns(&parsed_query));
-        let mut condition = get_condition_columns(&parsed_query);
+        let mut condition = cleaned_values(get_condition_columns(&parsed_query));
         let mut order_index = 0;
         let mut order_by: Vec<String> = Vec::new();
         let _order_index = condition
@@ -171,22 +171,23 @@ fn order_rows(
     result_table.sort_by(|a, b| {
         let columns_a: Vec<&str> = a.split(',').collect();
         let columns_b: Vec<&str> = b.split(',').collect();
-        let i = 0;
-        for (&index, order) in &order_map {
-            if index == insertion_order[i] {
+        for &index in &insertion_order {
+            if let Some(order) = order_map.get(&index) {
                 let val_a = columns_a[index];
                 let val_b = columns_b[index];
                 let val_a = cast_to_value(val_a);
                 let val_b = cast_to_value(val_b);
+                
                 let a_str = get_str_value(&val_a);
                 let b_str = get_str_value(&val_b);
                 let a_int = get_int_value(&val_a);
                 let b_int = get_int_value(&val_b);
+                
                 let cmp = match (a_int, b_int, a_str, b_str) {
                     (Some(i1), Some(i2), _, _) => i1.cmp(&i2),
                     (_, _, Some(s1), Some(s2)) => s1.cmp(&s2),
                     _ => std::cmp::Ordering::Equal,
-                };
+                };                
                 match order.as_str() {
                     "asc" => {
                         if cmp != std::cmp::Ordering::Equal {
@@ -205,6 +206,7 @@ fn order_rows(
         std::cmp::Ordering::Equal
     });
 }
+
 
 fn extract_bools_and_operators(
     condition: &Vec<String>,
@@ -247,4 +249,122 @@ fn evaluate_logical_conditions(bools: Vec<bool>, ops: Vec<String>) -> bool {
         }
     }
     result
+}
+
+// -- Testing --
+
+#[cfg(test)]
+
+#[test]
+fn test_select_parser() {
+    let parser = SelectParser;
+    let input = vec![
+        "select".to_string(),
+        "*".to_string(),
+        "from".to_string(),
+        "test_table".to_string(),
+        "where".to_string(),
+        "age".to_string(),
+        ">".to_string(),
+        "25".to_string(),
+        "order".to_string(),
+        "by".to_string(),
+        "name".to_string(),
+        "asc".to_string(),
+    ];
+
+    let result = parser.parse(input);
+
+    if let Ok(Query::Select(select_query)) = result {
+        assert_eq!(select_query.table_name, "test_table");
+        assert_eq!(select_query.columns, vec!["*"]);
+        assert_eq!(select_query.condition, vec!["age", ">", "25"]);
+        assert_eq!(select_query.order_by, vec!["name", "asc"]);
+    } 
+}
+
+#[test]
+fn test_filter_row_match() {
+    let headers = vec!["id", "name", "age"];
+    let condition = vec!["age".to_string(), ">".to_string(), "25".to_string()];
+    let row = vec!["1".to_string(), "Alice".to_string(), "30".to_string()];
+
+    assert!(filter_row(&row, &condition, &headers));
+}
+
+#[test]
+fn test_filter_row_no_match() {
+    let headers = vec!["id", "name", "age"];
+    let condition = vec!["age".to_string(), ">".to_string(), "30".to_string()];
+    let row = vec!["1".to_string(), "Alice".to_string(), "25".to_string()];
+
+    assert!(!filter_row(&row, &condition, &headers));
+}
+
+#[test]
+fn test_parse_order_by_insertion_order() {
+    let order_by = vec!["age".to_string(), "asc".to_string(), "name".to_string(), "desc".to_string()];
+    let headers = vec!["id", "name", "age"];
+
+    let (order_map, insertion_order) = parse_order_by(&order_by, &headers);
+
+    let mut expected_order_map = HashMap::new();
+    expected_order_map.insert(2, "asc".to_string());
+    expected_order_map.insert(1, "desc".to_string());
+
+    assert_eq!(order_map, expected_order_map);
+    assert_eq!(insertion_order, vec![2, 1]);
+}
+
+#[test]
+fn test_order_rows_with_one_condition() {
+    let mut result_table = vec![
+        "1,Alice,30".to_string(),
+        "2,Bob,25".to_string(),
+        "3,Charlie,35".to_string(),
+    ];
+
+    let mut order_map = HashMap::new();
+    order_map.insert(2, "asc".to_string()); 
+
+    let insertion_order = vec![2];
+    order_rows(&mut result_table, order_map, insertion_order);
+
+    assert_eq!(
+        result_table,
+        vec![
+            "2,Bob,25".to_string(),
+            "1,Alice,30".to_string(),
+            "3,Charlie,35".to_string(),
+        ]
+    );
+}
+
+#[test]
+fn test_order_rows_with_two_conditions() {
+    let mut result_table = vec![
+        "1,Agus,30".to_string(),
+        "2,Bob,25".to_string(),
+        "3,Agus,35".to_string(),
+        "4,Daniel,25".to_string(),
+    ];
+
+    let mut order_map = HashMap::new();
+
+    order_map.insert(1, "asc".to_string()); 
+    order_map.insert(2, "desc".to_string()); 
+
+    let insertion_order = vec![1,2];
+    order_rows(&mut result_table, order_map, insertion_order);
+    println!("{:?}", result_table);
+
+    assert_eq!(
+        result_table,
+        vec![
+            "3,Agus,35".to_string(),
+            "1,Agus,30".to_string(),
+            "2,Bob,25".to_string(),
+            "4,Daniel,25".to_string(),
+            ]
+    );
 }
