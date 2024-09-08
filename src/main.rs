@@ -25,12 +25,12 @@ fn main() {
         let error_description = "Uso: cargo run -- ruta/a/tablas \"<consulta>\"";
         let error = ErrorType::InvalidSyntax;
         print_error(error, error_description);
-        return ();
+        return;
     }
     let query = &args[2];
 
     if let Err(_error) = parse_query(query) {
-        return ();
+        return;
     }
 }
 // -- MINI FILTER FUNCTION --

@@ -32,7 +32,7 @@ pub fn get_str_value(value: &Value) -> Option<String> {
     }
 }
 
-pub fn get_columns(parsed_query: &Vec<String>) -> Vec<String> {
+pub fn get_columns(parsed_query: &[String]) -> Vec<String> {
     let mut columns = Vec::new();
     let mut index = 1;
     if parsed_query[0] == "update" {
@@ -48,7 +48,7 @@ pub fn get_columns(parsed_query: &Vec<String>) -> Vec<String> {
     columns
 }
 
-pub fn get_condition_columns(parsed_query: &Vec<String>) -> Vec<String> {
+pub fn get_condition_columns(parsed_query: &[String]) -> Vec<String> {
     let mut condition_columns = Vec::new();
     let index = parsed_query.iter().position(|x| x == "where");
     if let Some(mut index) = index {
@@ -62,10 +62,9 @@ pub fn get_condition_columns(parsed_query: &Vec<String>) -> Vec<String> {
 }
 
 pub fn get_column_index(headers: &Vec<&str>, column_name: &str) -> isize {
-    let mut index = 0;
-    for header in headers {
+    for (mut index, header) in headers.iter().enumerate(){
         if *header == column_name {
-            return index;
+            return index as isize;
         }
         index += 1;
     }
@@ -111,7 +110,6 @@ pub fn write_csv(path: &str, values: Option<Vec<String>>) {
         if let Err(_e) = file.write_all(line.as_bytes()) {
             let error = ErrorType::InvalidTable;
             print_error(error, "No se pudo escribir en el archivo");
-            return;
         }
     }
 }
