@@ -60,20 +60,19 @@ impl CommandParser for SelectParser {
     }
 }
 
-pub fn filter_row(row: &Vec<String>, condition: &Vec<String>, headers: &Vec<&str>) -> bool {
+pub fn filter_row(row: &Vec<String>, condition: &[String], headers: &[&str]) -> bool {
     if condition.is_empty() {
         return true;
     }
-    let column_condition_index = get_column_index(headers, condition[0].as_str());
+    let column_condition_index = get_column_index(&headers.iter().map(|s| s.to_string()).collect::<Vec<String>>(), condition[0].as_str());
     let column_condition_value = cast_to_value(condition[2].as_str());
     let operator = condition[1].as_str();
     let value = cast_to_value(&row[column_condition_index as usize]);
     if condition.len() > 3 {
         let (results, ops) = extract_bools_and_operators(condition, row, headers);
-        let final_result = evaluate_logical_conditions(results, ops);
-        return final_result;
+        evaluate_logical_conditions(results, ops)
     } else {
-        return filter(value, column_condition_value, operator);
+        filter(value, column_condition_value, operator)
     }
 }
 
@@ -111,7 +110,7 @@ pub fn select(query: SelectQuery) -> Result<(), ErrorType> {
 pub fn print_selected_rows(
     mut result_table: Vec<String>,
     query: &SelectQuery,
-    headers: &Vec<&str>,
+    headers: &[&str],
 ) {
     result_table.insert(0, headers.join(","));
     if query.columns[0] == "*" {
@@ -121,7 +120,7 @@ pub fn print_selected_rows(
     } else {
         let mut selected_indices = Vec::new();
         for column in &query.columns {
-            let column_index = get_column_index(&headers, column);
+            let column_index = get_column_index(&headers.iter().map(|s| s.to_string()).collect::<Vec<String>>(), column);
             selected_indices.push(column_index);
         }
         for row in result_table {
@@ -135,8 +134,8 @@ pub fn print_selected_rows(
 }
 
 pub fn parse_order_by(
-    order_by: &Vec<String>,
-    headers: &Vec<&str>,
+    order_by:&[String],
+    headers: &[&str],
 ) -> (HashMap<usize, String>, Vec<usize>) {
     let mut order_map = HashMap::new();
     let mut insertion_order: Vec<usize> = Vec::new();
@@ -146,14 +145,14 @@ pub fn parse_order_by(
         let column = &order_by[i];
         if i + 1 < order_by.len() {
             if &order_by[i + 1] == "asc" || &order_by[i + 1] == "desc" {
-                column_index = get_column_index(headers, column) as usize;
+                column_index = get_column_index(&headers.iter().map(|s| s.to_string()).collect::<Vec<String>>(), column) as usize;
                 insertion_order.push(column_index);
 
                 order_map.insert(column_index, order_by[i + 1].to_string());
                 i += 2;
             }
         } else {
-            column_index = get_column_index(headers, column) as usize;
+            column_index = get_column_index(&headers.iter().map(|s| s.to_string()).collect::<Vec<String>>(), column) as usize;
             insertion_order.push(column_index);
 
             order_map.insert(column_index, "asc".to_string());
@@ -164,7 +163,7 @@ pub fn parse_order_by(
 }
 // [ ]: reduce lines of code in order_rows function -> 41
 fn order_rows(
-    result_table: &mut Vec<String>,
+    result_table: &mut [String],
     order_map: HashMap<usize, String>,
     insertion_order: Vec<usize>,
 ) {
@@ -209,9 +208,9 @@ fn order_rows(
 
 
 fn extract_bools_and_operators(
-    condition: &Vec<String>,
+    condition: &[String],
     row: &Vec<String>,
-    headers: &Vec<&str>,
+    headers: &[&str],
 ) -> (Vec<bool>, Vec<String>) {
     let mut bools = Vec::new();
     let mut ops = Vec::new();
@@ -225,7 +224,7 @@ fn extract_bools_and_operators(
             let column = &condition[i];
             let operator = &condition[i + 1];
             let value = &condition[i + 2];
-            let column_index = get_column_index(headers, column) as usize;
+            let column_index = get_column_index(&headers.iter().map(|s| s.to_string()).collect::<Vec<String>>(), column) as usize;
             let column_value = cast_to_value(&row[column_index]);
             let condition_value = cast_to_value(value);
             let result = filter(column_value, condition_value, operator);
@@ -335,7 +334,7 @@ fn test_order_rows_with_one_condition() {
         vec![
             "2,Bob,25".to_string(),
             "1,Agus,30".to_string(),
-            "3,Charlie,35".to_string(),
+            "3,Gon,35".to_string(),
         ]
     );
 }

@@ -56,7 +56,7 @@ pub fn insert(query: InsertQuery) -> Result<(), ErrorType> {
         //Obtengo los headers
         let _ = reader.read_line(&mut header);
         let header = header.trim();
-        let headers: Vec<&str> = header.split(',').collect();
+        let headers: Vec<String> = header.split(',').map(|s| s.to_string()).collect();
         let row_to_insert = generate_row_to_insert(&headers, &query.columns, &query.values);
 
         write_csv(&relative_path, Some(row_to_insert));
@@ -68,22 +68,22 @@ pub fn insert(query: InsertQuery) -> Result<(), ErrorType> {
 }
 
 pub fn generate_row_to_insert(
-    headers: &Vec<&str>,
+    headers: &[String],
     columns: &Vec<String>,
-    values: &Vec<String>,
+    values: &[String],
 ) -> Vec<String> {
     let mut row_to_insert: Vec<String> = vec![String::new(); headers.len()];
     for i in headers {
         for j in columns {
             if j == i {
-                let n_column = get_column_index(&headers, &j) as usize;
+                let n_column = get_column_index(headers, j) as usize;
                 let n_value = get_column_index(
-                    &columns.iter().map(|s| s.as_str()).collect::<Vec<&str>>(),
-                    &i,
+                    columns,
+                    i,
                 ) as usize;
                 row_to_insert[n_column] = values[n_value].to_string();
             } else {
-                let index = get_column_index(&headers, &i);
+                let index = get_column_index(headers, i);
                 let index = index as usize;
                 row_to_insert[index].push_str("");
             }
@@ -95,7 +95,7 @@ pub fn write_csv(path: &str, values: Option<Vec<String>>) {
     let file = OpenOptions::new()
         .append(true)
         .create(true)
-        .open(&path)
+        .open(path)
         .map_err(|e| e.to_string());
 
     //TODO: get rid of this duplucated code in the open_file function
@@ -153,7 +153,7 @@ mod tests {
 
     #[test]
     fn test_generate_row_to_insert() {
-        let headers = vec!["id", "name", "age"];
+        let headers = vec!["id".to_string(), "name".to_string(), "age".to_string()];
         let columns = vec!["name".to_string(), "age".to_string()];
         let values = vec!["Alice".to_string(), "30".to_string()];
 

@@ -70,7 +70,7 @@ pub fn update(query: UpdateQuery) -> Result<(), ErrorType> {
         let header = header.trim();
         let headers: Vec<&str> = header.split(',').collect();
         if query.condition.is_empty() {
-            let row_to_insert = generate_row_to_insert(&headers, &query.columns, &query.values);
+            let row_to_insert = generate_row_to_insert(&headers.iter().map(|s| s.to_string()).collect::<Vec<String>>(), &query.columns, &query.values);
             write_csv(&relative_path, Some(row_to_insert));
         } else {
             let mut line_number;
@@ -104,21 +104,21 @@ pub fn update(query: UpdateQuery) -> Result<(), ErrorType> {
 pub fn create_updated_line(
     headers: &Vec<&str>,
     columns: &Vec<String>,
-    values_to_update: &Vec<String>,
-    values: &Vec<String>,
+    values_to_update: &[String],
+    values: &[String],
 ) -> Vec<String> {
     let mut row_to_insert: Vec<String> = vec![String::new(); headers.len()];
 
     for i in headers {
-        let n_column = get_column_index(&headers, &i) as usize;
+        let n_column = get_column_index(&headers.iter().map(|s| s.to_string()).collect::<Vec<String>>(), i) as usize;
         row_to_insert[n_column as usize].push_str(&values[n_column as usize]);
 
         for j in columns {
             if j == i {
-                let n_column = get_column_index(&headers, &j) as usize;
+                let n_column = get_column_index(&headers.iter().map(|s| s.to_string()).collect::<Vec<String>>(), j) as usize;
                 let n_value = get_column_index(
-                    &columns.iter().map(|s| s.as_str()).collect::<Vec<&str>>(),
-                    &i,
+                    columns,
+                    i,
                 ) as usize;
                 row_to_insert[n_column] = values_to_update[n_value].to_string();
             }

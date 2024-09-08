@@ -61,12 +61,12 @@ pub fn get_condition_columns(parsed_query: &[String]) -> Vec<String> {
     condition_columns
 }
 
-pub fn get_column_index(headers: &Vec<&str>, column_name: &str) -> isize {
-    for (mut index, header) in headers.iter().enumerate(){
+pub fn get_column_index(headers: &[String], column_name: &str) -> isize {
+    for (index, header) in headers.iter().enumerate(){
         if *header == column_name {
             return index as isize;
         }
-        index += 1;
+        //index += 1;
     }
     -1
 }
@@ -86,7 +86,7 @@ pub fn write_csv(path: &str, values: Option<Vec<String>>) {
     let file = OpenOptions::new()
         .append(true)
         .create(true)
-        .open(&path)
+        .open(path)
         .map_err(|e| e.to_string());
     //TODO: get rid of this duplucated code in the open_file function
     let mut file = match file {
@@ -186,14 +186,15 @@ mod tests {
 
     #[test]
     fn test_get_column_index_found() {
-        let headers = vec!["column1", "column2", "column3"];
+        let headers = vec!["column1".to_string(), "column2".to_string(), "column3".to_string()];
+
         let column_name = "column2";
         assert_eq!(get_column_index(&headers, column_name), 1);
     }
 
     #[test]
     fn test_get_column_index_not_found() {
-        let headers = vec!["column1", "column2", "column3"];
+        let headers = vec!["column1".to_string(), "column2".to_string(), "column3".to_string()];
         let column_name = "column4";
         assert_eq!(get_column_index(&headers, column_name), -1);
     }
