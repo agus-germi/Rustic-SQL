@@ -1,9 +1,3 @@
-use std::fs::OpenOptions;
-use std::io::Write;
-
-use crate::error::print_error;
-use crate::error::ErrorType;
-
 #[derive(Debug, PartialEq)]
 pub enum Value {
     Int(i32),
@@ -62,13 +56,12 @@ pub fn get_condition_columns(parsed_query: &[String]) -> Vec<String> {
 }
 
 pub fn get_column_index(headers: &[String], column_name: &str) -> isize {
-    for (index, header) in headers.iter().enumerate(){
-        if *header == column_name {
-            return index as isize;
-        }
-        //index += 1;
-    }
-    -1
+    headers
+        .iter()
+        .enumerate()
+        .find(|(_, header)| *header == column_name)
+        .map(|(index, _)| index as isize)
+        .unwrap_or(-1)
 }
 
 pub fn cleaned_values(columns: Vec<String>) -> Vec<String> {
@@ -81,38 +74,7 @@ pub fn cleaned_values(columns: Vec<String>) -> Vec<String> {
         })
         .collect()
 }
-//FIXME: there is an equal function
-pub fn write_csv(path: &str, values: Option<Vec<String>>) {
-    let file = OpenOptions::new()
-        .append(true)
-        .create(true)
-        .open(path)
-        .map_err(|e| e.to_string());
-    //TODO: get rid of this duplucated code in the open_file function
-    let mut file = match file {
-        Ok(f) => f,
-        Err(e) => {
-            println!("Failed to open the file: {}", e);
-            return;
-        }
-    };
-    // 1st) creo la linea
-    let mut line = String::new();
-    if let Some(values) = values {
-        for (i, value) in values.iter().enumerate() {
-            if i > 0 {
-                line.push(',');
-            }
-            line.push_str(value);
-        }
-        line.push('\n');
-        // 2nd) escribo la linea
-        if let Err(_e) = file.write_all(line.as_bytes()) {
-            let error = ErrorType::InvalidTable;
-            print_error(error, "No se pudo escribir en el archivo");
-        }
-    }
-}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -186,7 +148,11 @@ mod tests {
 
     #[test]
     fn test_get_column_index_found() {
-        let headers = vec!["column1".to_string(), "column2".to_string(), "column3".to_string()];
+        let headers = vec![
+            "column1".to_string(),
+            "column2".to_string(),
+            "column3".to_string(),
+        ];
 
         let column_name = "column2";
         assert_eq!(get_column_index(&headers, column_name), 1);
@@ -194,7 +160,11 @@ mod tests {
 
     #[test]
     fn test_get_column_index_not_found() {
-        let headers = vec!["column1".to_string(), "column2".to_string(), "column3".to_string()];
+        let headers = vec![
+            "column1".to_string(),
+            "column2".to_string(),
+            "column3".to_string(),
+        ];
         let column_name = "column4";
         assert_eq!(get_column_index(&headers, column_name), -1);
     }

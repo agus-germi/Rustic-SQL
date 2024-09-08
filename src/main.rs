@@ -29,8 +29,7 @@ fn main() {
     }
     let query = &args[2];
 
-    if let Err(_error) = parse_query(query) {
-    }
+    if let Err(_error) = parse_query(query) {}
 }
 // -- MINI FILTER FUNCTION --
 trait Operations {

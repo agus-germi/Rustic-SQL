@@ -20,9 +20,33 @@ pub struct UpdateQuery {
     pub values: Vec<String>,
     pub condition: Vec<String>,
 }
-//[ ]: reduce lines of code in parse function -> 36
 pub struct UpdateParser;
 impl CommandParser for UpdateParser {
+    fn validate_syntax(&self, parsed_query: &[String]) -> Result<(), ErrorType> {
+        if parsed_query.len() < 4 || parsed_query[0] != "update" || !parsed_query.contains(&"set".to_string()) {
+            error::print_error(ErrorType::InvalidSyntax, "Sintaxis inválida: falta 'UPDATE' o 'SET'");
+            return Err(ErrorType::InvalidSyntax);
+        }
+
+        let set_index = parsed_query.iter().position(|x| x == "set").ok_or(ErrorType::InvalidSyntax)?;
+        let mut set_found = false;
+
+        for i in (set_index + 1)..parsed_query.len() {
+            if parsed_query[i] == "=" && i + 1 < parsed_query.len() {
+                set_found = true;
+            } else if parsed_query[i] == "where" {
+                break;
+            }
+        }
+
+        if !set_found {
+            error::print_error(ErrorType::InvalidSyntax, "Sintaxis inválida: no se encontraron asignaciones 'columna=valor'");
+            return Err(ErrorType::InvalidSyntax);
+        }
+
+        Ok(())
+    }
+    //[ ]: reduce lines of code in parse function -> 36
     fn parse(&self, parsed_query: Vec<String>) -> Result<Query, ErrorType> {
         let table_name: String;
         //TODO: get rid of duplicated code
@@ -70,7 +94,14 @@ pub fn update(query: UpdateQuery) -> Result<(), ErrorType> {
         let header = header.trim();
         let headers: Vec<&str> = header.split(',').collect();
         if query.condition.is_empty() {
-            let row_to_insert = generate_row_to_insert(&headers.iter().map(|s| s.to_string()).collect::<Vec<String>>(), &query.columns, &query.values);
+            let row_to_insert = generate_row_to_insert(
+                &headers
+                    .iter()
+                    .map(|s| s.to_string())
+                    .collect::<Vec<String>>(),
+                &query.columns,
+                &query.values,
+            );
             write_csv(&relative_path, Some(row_to_insert));
         } else {
             let mut line_number;
@@ -110,16 +141,25 @@ pub fn create_updated_line(
     let mut row_to_insert: Vec<String> = vec![String::new(); headers.len()];
 
     for i in headers {
-        let n_column = get_column_index(&headers.iter().map(|s| s.to_string()).collect::<Vec<String>>(), i) as usize;
+        let n_column = get_column_index(
+            &headers
+                .iter()
+                .map(|s| s.to_string())
+                .collect::<Vec<String>>(),
+            i,
+        ) as usize;
         row_to_insert[n_column as usize].push_str(&values[n_column as usize]);
 
         for j in columns {
             if j == i {
-                let n_column = get_column_index(&headers.iter().map(|s| s.to_string()).collect::<Vec<String>>(), j) as usize;
-                let n_value = get_column_index(
-                    columns,
-                    i,
+                let n_column = get_column_index(
+                    &headers
+                        .iter()
+                        .map(|s| s.to_string())
+                        .collect::<Vec<String>>(),
+                    j,
                 ) as usize;
+                let n_value = get_column_index(columns, i) as usize;
                 row_to_insert[n_column] = values_to_update[n_value].to_string();
             }
         }
@@ -161,7 +201,7 @@ fn update_line(file_path: &str, line_index: usize, row: Option<&Vec<String>>) ->
 // Testing -----
 
 #[cfg(test)]
-mod test{
+mod test {
     use super::*;
 
     #[test]
@@ -178,15 +218,18 @@ mod test{
             "=".to_string(),
             "value2".to_string(),
         ];
-    
+
         let result = parser.parse(input);
-    
+
         if let Ok(Query::Update(update_query)) = result {
             assert_eq!(update_query.table_name, "my_table");
             assert_eq!(update_query.columns, vec!["column1".to_string()]);
             assert_eq!(update_query.values, vec!["value1".to_string()]);
-            assert_eq!(update_query.condition, vec!["column2".to_string(), "=".to_string(), "value2".to_string()]);
-        } 
+            assert_eq!(
+                update_query.condition,
+                vec!["column2".to_string(), "=".to_string(), "value2".to_string()]
+            );
+        }
     }
 
     #[test]
@@ -194,31 +237,48 @@ mod test{
         let headers = vec!["column1", "column2", "column3"];
         let columns = vec!["column2".to_string()];
         let values_to_update = vec!["new_value2".to_string()];
-        let values = vec!["value1".to_string(), "value2".to_string(), "value3".to_string()];
+        let values = vec![
+            "value1".to_string(),
+            "value2".to_string(),
+            "value3".to_string(),
+        ];
 
         let updated_line = create_updated_line(&headers, &columns, &values_to_update, &values);
-        assert_eq!(updated_line, vec!["value1".to_string(), "new_value2".to_string(), "value3".to_string()]);
+        assert_eq!(
+            updated_line,
+            vec![
+                "value1".to_string(),
+                "new_value2".to_string(),
+                "value3".to_string()
+            ]
+        );
     }
 
     #[test]
-    fn test_update_line()  -> Result<(), Box<dyn std::error::Error>>{
+    fn test_update_line() -> Result<(), Box<dyn std::error::Error>> {
         let test_file = "test_update_line.csv";
-    
+
         let mut file = File::create(test_file)?;
         writeln!(file, "id,id_cliente,producto,cantidad")?;
         writeln!(file, "1,1,manzana,5")?;
         writeln!(file, "2,8,pera,3")?;
-    
-        update_line(test_file, 2, Some(&vec!["2".to_string(), "8".to_string(), "pera".to_string(), "10".to_string()]))?;
-        
-        
+
+        update_line(
+            test_file,
+            2,
+            Some(&vec![
+                "2".to_string(),
+                "8".to_string(),
+                "pera".to_string(),
+                "10".to_string(),
+            ]),
+        )?;
+
         let contents = fs::read_to_string(test_file)?;
         assert!(contents.contains("2,8,pera,10"));
-    
+
         fs::remove_file(test_file)?;
-    
+
         Ok(())
     }
-
-
 }

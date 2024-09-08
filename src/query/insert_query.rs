@@ -5,8 +5,7 @@ use std::{
 
 use super::{CommandParser, Query};
 use crate::{
-    error::{print_error, ErrorType},
-    extras::{cleaned_values, get_column_index},
+    error::{self, print_error, ErrorType},    extras::{cleaned_values, get_column_index},
 };
 
 #[derive(Debug)]
@@ -19,6 +18,24 @@ pub struct InsertQuery {
 pub struct InsertParser;
 
 impl CommandParser for InsertParser {
+    fn validate_syntax(&self, parsed_query: &[String]) -> Result<(), ErrorType> {
+        if parsed_query.len() < 4 || parsed_query[0] != "insert" || parsed_query[1] != "into" {
+            error::print_error(ErrorType::InvalidSyntax, "Sintaxis inválida: falta 'INSERT INTO'");
+            return Err(ErrorType::InvalidSyntax);
+        }
+        let table_name_index = parsed_query.iter().position(|x| x == "into").map(|index| index + 1);
+        let values_start = parsed_query.iter().position(|x| x == "values");
+        let table_index = table_name_index.ok_or(ErrorType::InvalidSyntax)?;
+        let value_index = values_start.ok_or(ErrorType::InvalidSyntax)?;
+        let number_col = parsed_query[table_index + 1 .. value_index].len();
+        let number_val = parsed_query[value_index + 1 ..].len();
+        if  number_col != number_val {
+            error::print_error(ErrorType::InvalidSyntax, "Cantidad de columnas no coincide con cantidad de valores");
+            return Err(ErrorType::InvalidSyntax);
+        }
+
+        Ok(())
+    }
     fn parse(&self, parsed_query: Vec<String>) -> Result<Query, ErrorType> {
         let mut table_index = 0;
         let _table_name_index = parsed_query
@@ -52,8 +69,6 @@ pub fn insert(query: InsertQuery) -> Result<(), ErrorType> {
     if let Ok(file) = File::open(&relative_path) {
         let mut reader: io::BufReader<File> = io::BufReader::new(file);
         let mut header: String = String::new();
-
-        //Obtengo los headers
         let _ = reader.read_line(&mut header);
         let header = header.trim();
         let headers: Vec<String> = header.split(',').map(|s| s.to_string()).collect();
@@ -77,10 +92,7 @@ pub fn generate_row_to_insert(
         for j in columns {
             if j == i {
                 let n_column = get_column_index(headers, j) as usize;
-                let n_value = get_column_index(
-                    columns,
-                    i,
-                ) as usize;
+                let n_value = get_column_index(columns, i) as usize;
                 row_to_insert[n_column] = values[n_value].to_string();
             } else {
                 let index = get_column_index(headers, i);
@@ -125,7 +137,6 @@ pub fn write_csv(path: &str, values: Option<Vec<String>>) {
 #[cfg(test)]
 mod tests {
     use std::fs;
-
     use super::*;
 
     #[test]
@@ -148,7 +159,7 @@ mod tests {
             assert_eq!(insert_query.table_name, "test_table");
             assert_eq!(insert_query.columns, vec!["name", "age"]);
             assert_eq!(insert_query.values, vec!["Alice", "30"]);
-        } 
+        }
     }
 
     #[test]
@@ -166,7 +177,7 @@ mod tests {
     fn test_write_csv() -> Result<(), Box<dyn std::error::Error>> {
         let test_file: &str = "test_write_csv.csv";
         let data = vec!["1".to_string(), "Alice".to_string(), "30".to_string()];
-        
+
         let _ = std::fs::remove_file(test_file);
 
         write_csv(test_file, Some(data));
@@ -181,25 +192,25 @@ mod tests {
 
     #[test]
     fn test_insert() -> Result<(), Box<dyn std::error::Error>> {
-    // Set up test file
-    let test_file = "test_insert.csv";
-    
-    let mut file = File::create(test_file)?;
-    writeln!(file, "id,name,age")?;
+        // Set up test file
+        let test_file = "test_insert.csv";
 
-    let insert_query = InsertQuery {
-        table_name: "test_insert".to_string(),
-        columns: vec!["name".to_string(), "age".to_string()],
-        values: vec!["Alice".to_string(), "30".to_string()],
-    };
+        let mut file = File::create(test_file)?;
+        writeln!(file, "id,name,age")?;
 
-    let _ = insert(insert_query);
+        let insert_query = InsertQuery {
+            table_name: "test_insert".to_string(),
+            columns: vec!["name".to_string(), "age".to_string()],
+            values: vec!["Alice".to_string(), "30".to_string()],
+        };
 
-    let contents = fs::read_to_string(test_file)?;
-    assert!(contents.contains(",Alice,30"));
+        let _ = insert(insert_query);
 
-    fs::remove_file(test_file)?;
+        let contents = fs::read_to_string(test_file)?;
+        assert!(contents.contains(",Alice,30"));
 
-    Ok(())
-}
+        fs::remove_file(test_file)?;
+
+        Ok(())
+    }
 }

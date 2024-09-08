@@ -22,8 +22,23 @@ pub struct SelectQuery {
     pub order_by: Vec<String>,
 }
 pub struct SelectParser;
-//[ ]: reduce lines of code in parse function -> 35
 impl CommandParser for SelectParser {
+    fn validate_syntax(&self, parsed_query: &[String]) -> Result<(), ErrorType> {
+        if parsed_query.len() < 4 || parsed_query[0] != "select" || !parsed_query.contains(&"from".to_string()) {
+            error::print_error(ErrorType::InvalidSyntax, "Sintaxis inválida: falta 'SELECT' o 'FROM'");
+            return Err(ErrorType::InvalidSyntax);
+        }
+
+        let from_index = parsed_query.iter().position(|x| x == "from").ok_or(ErrorType::InvalidSyntax)?;
+        if from_index <= 1 {
+            error::print_error(ErrorType::InvalidSyntax, "Sintaxis inválida: falta la lista de columnas");
+            return Err(ErrorType::InvalidSyntax);
+        }
+
+        Ok(())
+    }
+
+    //[ ]: reduce lines of code in parse function -> 35
     fn parse(&self, parsed_query: Vec<String>) -> Result<Query, ErrorType> {
         let table_name: String;
         //TODO: get rid of duplicated code
@@ -64,7 +79,8 @@ pub fn filter_row(row: &Vec<String>, condition: &[String], headers: &[&str]) -> 
     if condition.is_empty() {
         return true;
     }
-    let column_condition_index = get_column_index(&headers.iter().map(|s| s.to_string()).collect::<Vec<String>>(), condition[0].as_str());
+    let headers_vec: Vec<String> = headers.iter().map(|&s| s.to_string()).collect();
+    let column_condition_index = get_column_index(&headers_vec, condition[0].as_str());
     let column_condition_value = cast_to_value(condition[2].as_str());
     let operator = condition[1].as_str();
     let value = cast_to_value(&row[column_condition_index as usize]);
@@ -77,6 +93,7 @@ pub fn filter_row(row: &Vec<String>, condition: &[String], headers: &[&str]) -> 
 }
 
 pub fn select(query: SelectQuery) -> Result<(), ErrorType> {
+    println!("Selecting from table: {}", query.table_name);
     let relative_path = format!("{}.csv", query.table_name);
     if let Ok(file) = File::open(&relative_path) {
         let mut reader: io::BufReader<File> = io::BufReader::new(file);
@@ -107,11 +124,7 @@ pub fn select(query: SelectQuery) -> Result<(), ErrorType> {
     Ok(())
 }
 
-pub fn print_selected_rows(
-    mut result_table: Vec<String>,
-    query: &SelectQuery,
-    headers: &[&str],
-) {
+pub fn print_selected_rows(mut result_table: Vec<String>, query: &SelectQuery, headers: &[&str]) {
     result_table.insert(0, headers.join(","));
     if query.columns[0] == "*" {
         for row in result_table {
@@ -120,7 +133,13 @@ pub fn print_selected_rows(
     } else {
         let mut selected_indices = Vec::new();
         for column in &query.columns {
-            let column_index = get_column_index(&headers.iter().map(|s| s.to_string()).collect::<Vec<String>>(), column);
+            let column_index = get_column_index(
+                &headers
+                    .iter()
+                    .map(|s| s.to_string())
+                    .collect::<Vec<String>>(),
+                column,
+            );
             selected_indices.push(column_index);
         }
         for row in result_table {
@@ -134,7 +153,7 @@ pub fn print_selected_rows(
 }
 
 pub fn parse_order_by(
-    order_by:&[String],
+    order_by: &[String],
     headers: &[&str],
 ) -> (HashMap<usize, String>, Vec<usize>) {
     let mut order_map = HashMap::new();
@@ -145,14 +164,26 @@ pub fn parse_order_by(
         let column = &order_by[i];
         if i + 1 < order_by.len() {
             if &order_by[i + 1] == "asc" || &order_by[i + 1] == "desc" {
-                column_index = get_column_index(&headers.iter().map(|s| s.to_string()).collect::<Vec<String>>(), column) as usize;
+                column_index = get_column_index(
+                    &headers
+                        .iter()
+                        .map(|s| s.to_string())
+                        .collect::<Vec<String>>(),
+                    column,
+                ) as usize;
                 insertion_order.push(column_index);
 
                 order_map.insert(column_index, order_by[i + 1].to_string());
                 i += 2;
             }
         } else {
-            column_index = get_column_index(&headers.iter().map(|s| s.to_string()).collect::<Vec<String>>(), column) as usize;
+            column_index = get_column_index(
+                &headers
+                    .iter()
+                    .map(|s| s.to_string())
+                    .collect::<Vec<String>>(),
+                column,
+            ) as usize;
             insertion_order.push(column_index);
 
             order_map.insert(column_index, "asc".to_string());
@@ -176,17 +207,17 @@ fn order_rows(
                 let val_b = columns_b[index];
                 let val_a = cast_to_value(val_a);
                 let val_b = cast_to_value(val_b);
-                
+
                 let a_str = get_str_value(&val_a);
                 let b_str = get_str_value(&val_b);
                 let a_int = get_int_value(&val_a);
                 let b_int = get_int_value(&val_b);
-                
+
                 let cmp = match (a_int, b_int, a_str, b_str) {
                     (Some(i1), Some(i2), _, _) => i1.cmp(&i2),
                     (_, _, Some(s1), Some(s2)) => s1.cmp(&s2),
                     _ => std::cmp::Ordering::Equal,
-                };                
+                };
                 match order.as_str() {
                     "asc" => {
                         if cmp != std::cmp::Ordering::Equal {
@@ -206,7 +237,6 @@ fn order_rows(
     });
 }
 
-
 fn extract_bools_and_operators(
     condition: &[String],
     row: &Vec<String>,
@@ -224,7 +254,13 @@ fn extract_bools_and_operators(
             let column = &condition[i];
             let operator = &condition[i + 1];
             let value = &condition[i + 2];
-            let column_index = get_column_index(&headers.iter().map(|s| s.to_string()).collect::<Vec<String>>(), column) as usize;
+            let column_index = get_column_index(
+                &headers
+                    .iter()
+                    .map(|s| s.to_string())
+                    .collect::<Vec<String>>(),
+                column,
+            ) as usize;
             let column_value = cast_to_value(&row[column_index]);
             let condition_value = cast_to_value(value);
             let result = filter(column_value, condition_value, operator);
@@ -253,7 +289,6 @@ fn evaluate_logical_conditions(bools: Vec<bool>, ops: Vec<String>) -> bool {
 // -- Testing --
 
 #[cfg(test)]
-
 #[test]
 fn test_select_parser() {
     let parser = SelectParser;
@@ -279,7 +314,7 @@ fn test_select_parser() {
         assert_eq!(select_query.columns, vec!["*"]);
         assert_eq!(select_query.condition, vec!["age", ">", "25"]);
         assert_eq!(select_query.order_by, vec!["name", "asc"]);
-    } 
+    }
 }
 
 #[test]
@@ -302,7 +337,12 @@ fn test_filter_row_no_match() {
 
 #[test]
 fn test_parse_order_by_insertion_order() {
-    let order_by = vec!["age".to_string(), "asc".to_string(), "name".to_string(), "desc".to_string()];
+    let order_by = vec![
+        "age".to_string(),
+        "asc".to_string(),
+        "name".to_string(),
+        "desc".to_string(),
+    ];
     let headers = vec!["id", "name", "age"];
 
     let (order_map, insertion_order) = parse_order_by(&order_by, &headers);
@@ -324,7 +364,7 @@ fn test_order_rows_with_one_condition() {
     ];
 
     let mut order_map = HashMap::new();
-    order_map.insert(2, "asc".to_string()); 
+    order_map.insert(2, "asc".to_string());
 
     let insertion_order = vec![2];
     order_rows(&mut result_table, order_map, insertion_order);
@@ -350,10 +390,10 @@ fn test_order_rows_when_tie() {
 
     let mut order_map = HashMap::new();
 
-    order_map.insert(1, "asc".to_string()); 
-    order_map.insert(2, "desc".to_string()); 
+    order_map.insert(1, "asc".to_string());
+    order_map.insert(2, "desc".to_string());
 
-    let insertion_order = vec![1,2];
+    let insertion_order = vec![1, 2];
     order_rows(&mut result_table, order_map, insertion_order);
     println!("{:?}", result_table);
 
@@ -364,6 +404,6 @@ fn test_order_rows_when_tie() {
             "1,Agus,30".to_string(),
             "2,Bob,25".to_string(),
             "4,Daniel,25".to_string(),
-            ]
+        ]
     );
 }

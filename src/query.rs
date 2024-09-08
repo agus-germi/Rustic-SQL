@@ -20,6 +20,7 @@ pub enum Query {
 }
 
 trait CommandParser {
+    fn validate_syntax(&self, parsed_query: &[String]) -> Result<(), ErrorType>;
     fn parse(&self, parsed_query: Vec<String>) -> Result<Query, ErrorType>;
 }
 
@@ -45,6 +46,7 @@ pub fn parse_query(query: &str) -> Result<(), ErrorType> {
             return Err(ErrorType::InvalidSyntax);
         }
     };
+    command.validate_syntax(&parsed_query)?;
     match command.parse(parsed_query) {
         Ok(query) => execute(query),
         Err(error) => return Err(error),
@@ -65,7 +67,7 @@ mod tests {
 
     #[test]
     fn test_parse_insert_query() {
-        let query = "insert into table_name values ('value1', 'value2')";
+        let query = "INSERT INTO ordenes (id, id_cliente, producto, cantidad) VALUES (111, 6, 'Laptop', 3);";
         let result = parse_query(query);
         assert!(result.is_ok(), "Failed to parse valid INSERT query");
     }

@@ -17,6 +17,16 @@ pub struct DeleteQuery {
 
 pub struct DeleteParser;
 impl CommandParser for DeleteParser {
+    fn validate_syntax(&self, parsed_query: &[String]) -> Result<(), ErrorType> {
+        if parsed_query.len() < 3 || parsed_query[0] != "delete" || parsed_query[1] != "from" {
+            error::print_error(ErrorType::InvalidSyntax, "Sintaxis inválida: falta 'DELETE FROM'");
+            return Err(ErrorType::InvalidSyntax);
+        }
+
+        Ok(())
+    }
+
+
     fn parse(&self, parsed_query: Vec<String>) -> Result<Query, ErrorType> {
         let table_name: String;
         //TODO: get rid of duplicated code
@@ -104,8 +114,11 @@ mod tests {
 
         if let Ok(Query::Delete(delete_query)) = result {
             assert_eq!(delete_query.table_name, "test_table");
-            assert_eq!(delete_query.condition, vec!["id".to_string(), "=".to_string(), "1".to_string()]);
-        } 
+            assert_eq!(
+                delete_query.condition,
+                vec!["id".to_string(), "=".to_string(), "1".to_string()]
+            );
+        }
     }
     #[test]
     fn test_delete_parser_invalid_missing_from() {
@@ -126,7 +139,7 @@ mod tests {
     #[test]
     fn test_delete_function() -> Result<(), Box<dyn std::error::Error>> {
         let test_file = "test_delete_function.csv";
-        
+
         let mut file = File::create(test_file)?;
         writeln!(file, "id,name")?;
         writeln!(file, "1,Agus")?;
@@ -140,7 +153,7 @@ mod tests {
         let _ = delete(delete_query);
 
         let contents = fs::read_to_string(test_file)?;
-        let expected_result = "id,name\n2,Tina\n"; 
+        let expected_result = "id,name\n2,Tina\n";
         assert_eq!(contents, expected_result);
 
         fs::remove_file(test_file)?; //elimino el archivo de prueba
