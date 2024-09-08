@@ -23,12 +23,21 @@ pub struct UpdateQuery {
 pub struct UpdateParser;
 impl CommandParser for UpdateParser {
     fn validate_syntax(&self, parsed_query: &[String]) -> Result<(), ErrorType> {
-        if parsed_query.len() < 4 || parsed_query[0] != "update" || !parsed_query.contains(&"set".to_string()) {
-            error::print_error(ErrorType::InvalidSyntax, "Sintaxis inválida: falta 'UPDATE' o 'SET'");
+        if parsed_query.len() < 4
+            || parsed_query[0] != "update"
+            || !parsed_query.contains(&"set".to_string())
+        {
+            error::print_error(
+                ErrorType::InvalidSyntax,
+                "Sintaxis inválida: falta 'UPDATE' o 'SET'",
+            );
             return Err(ErrorType::InvalidSyntax);
         }
 
-        let set_index = parsed_query.iter().position(|x| x == "set").ok_or(ErrorType::InvalidSyntax)?;
+        let set_index = parsed_query
+            .iter()
+            .position(|x| x == "set")
+            .ok_or(ErrorType::InvalidSyntax)?;
         let mut set_found = false;
 
         for i in (set_index + 1)..parsed_query.len() {
@@ -40,42 +49,23 @@ impl CommandParser for UpdateParser {
         }
 
         if !set_found {
-            error::print_error(ErrorType::InvalidSyntax, "Sintaxis inválida: no se encontraron asignaciones 'columna=valor'");
+            error::print_error(
+                ErrorType::InvalidSyntax,
+                "Sintaxis inválida: no se encontraron asignaciones 'columna=valor'",
+            );
             return Err(ErrorType::InvalidSyntax);
         }
 
         Ok(())
     }
-    //[ ]: reduce lines of code in parse function -> 36
     fn parse(&self, parsed_query: Vec<String>) -> Result<Query, ErrorType> {
-        let table_name: String;
-        //TODO: get rid of duplicated code
-        let index_name;
-        let table_name_index = parsed_query.iter().position(|x| x == "update");
-        if let Some(index) = table_name_index {
-            table_name = parsed_query[index + 1].to_string();
-            index_name = index + 1;
-        } else {
-            error::print_error(
-                ErrorType::InvalidSyntax,
-                "Sintaxis inválida, falta 'update'",
-            );
-            return Err(ErrorType::InvalidSyntax);
-        }
-        let mut columns = Vec::new();
-        let mut values = Vec::new();
-        //TODO: find a way of getting it done better
-        for i in (index_name + 1)..parsed_query.len() {
-            if parsed_query[i] == "=" && i + 1 < parsed_query.len() {
-                columns.push(parsed_query[i - 1].to_string());
-                values.push(parsed_query[i + 1].to_string());
-            } else if parsed_query[i] == "where" {
-                break;
-            }
-        }
-        values = cleaned_values(values);
-        columns = cleaned_values(columns);
+        let table_name = extract_table_name(&parsed_query)?;
+        let set_index = parsed_query.iter().position(|x| x == "set").unwrap_or(0);
+
+        let (columns, values) = extract_columns_and_values(&parsed_query, set_index + 1);
+
         let condition = cleaned_values(get_condition_columns(&parsed_query));
+
         Ok(Query::Update(UpdateQuery {
             table_name,
             columns,
@@ -84,56 +74,103 @@ impl CommandParser for UpdateParser {
         }))
     }
 }
-// [ ]: reduce lines of code in update function -> 38
+
+fn extract_table_name(parsed_query: &[String]) -> Result<String, ErrorType> {
+    parsed_query
+        .iter()
+        .position(|x| x == "update")
+        .map(|index| parsed_query[index + 1].to_string())
+        .ok_or_else(|| {
+            error::print_error(
+                ErrorType::InvalidSyntax,
+                "Sintaxis inválida, falta 'update'",
+            );
+            ErrorType::InvalidSyntax
+        })
+}
+
+fn extract_columns_and_values(
+    parsed_query: &[String],
+    start_index: usize,
+) -> (Vec<String>, Vec<String>) {
+    let mut columns = Vec::new();
+    let mut values = Vec::new();
+
+    let mut i = start_index;
+    while i < parsed_query.len() {
+        if parsed_query[i] == "=" && i + 1 < parsed_query.len() {
+            columns.push(parsed_query[i - 1].to_string());
+            values.push(parsed_query[i + 1].to_string());
+            i += 2; // Move past the current column=value pair
+        } else if parsed_query[i] == "where" {
+            break; // Stop processing when "where" is found
+        } else {
+            i += 1;
+        }
+    }
+
+    (cleaned_values(columns), cleaned_values(values))
+}
+
 pub fn update(query: UpdateQuery) -> Result<(), ErrorType> {
     let relative_path = format!("{}.csv", query.table_name);
-    if let Ok(file) = File::open(&relative_path) {
-        let mut reader: io::BufReader<File> = io::BufReader::new(file);
-        let mut header: String = String::new();
-        let _ = reader.read_line(&mut header);
-        let header = header.trim();
-        let headers: Vec<&str> = header.split(',').collect();
-        if query.condition.is_empty() {
-            let row_to_insert = generate_row_to_insert(
-                &headers
-                    .iter()
-                    .map(|s| s.to_string())
-                    .collect::<Vec<String>>(),
-                &query.columns,
-                &query.values,
-            );
-            write_csv(&relative_path, Some(row_to_insert));
-        } else {
-            let mut line_number;
-            let mut updated_line;
-            let mut i = 0;
-            for line in reader.lines() {
-                i += 1;
-                if let Ok(line) = line {
-                    let values: Vec<String> =
-                        line.split(",").map(|s: &str| s.to_string()).collect();
-                    if filter_row(&values, &query.condition, &headers) {
-                        updated_line =
-                            create_updated_line(&headers, &query.columns, &query.values, &values);
-                        line_number = i;
-                        let _ =
-                            update_line(relative_path.as_str(), line_number, Some(&updated_line));
-                    };
-                } else {
-                    print_error(ErrorType::InvalidTable, "No se pudo leer el archivo");
-                    return Err(ErrorType::InvalidTable);
-                }
-            }
-        }
-    } else {
+    let file = File::open(&relative_path).map_err(|_| {
         print_error(ErrorType::InvalidTable, "No se pudo abrir el archivo");
-        return Err(ErrorType::InvalidTable);
+        ErrorType::InvalidTable
+    })?;
+
+    let mut reader = io::BufReader::new(file);
+    let mut header = String::new();
+    reader.read_line(&mut header).map_err(|_| {
+        print_error(ErrorType::InvalidTable, "No se pudo leer el archivo");
+        ErrorType::InvalidTable
+    })?;
+
+    let headers: Vec<&str> = header.trim().split(',').collect();
+
+    if query.condition.is_empty() {
+        let row_to_insert = generate_row_to_insert(
+            &headers
+                .iter()
+                .map(|s| s.to_string())
+                .collect::<Vec<String>>(),
+            &query.columns,
+            &query.values,
+        );
+        return {
+            write_csv(&relative_path, Some(row_to_insert));
+            Ok(())
+        };
+    }
+
+    update_rows(&relative_path, reader, &headers, &query)?;
+    Ok(())
+}
+
+fn update_rows(
+    relative_path: &str,
+    reader: io::BufReader<File>,
+    headers: &[&str],
+    query: &UpdateQuery,
+) -> Result<(), ErrorType> {
+    for (i, line) in reader.lines().enumerate() {
+        let line = line.map_err(|_| {
+            print_error(ErrorType::InvalidTable, "No se pudo leer el archivo");
+            ErrorType::InvalidTable
+        })?;
+
+        let values: Vec<String> = line.split(',').map(|s| s.to_string()).collect();
+
+        if filter_row(&values, &query.condition, headers) {
+            let updated_line = create_updated_line(headers, &query.columns, &query.values, &values);
+            let _ = update_line(relative_path, i + 1, Some(&updated_line));
+        }
     }
     Ok(())
 }
 
 pub fn create_updated_line(
-    headers: &Vec<&str>,
+    headers: &[&str],
     columns: &Vec<String>,
     values_to_update: &[String],
     values: &[String],
@@ -220,7 +257,7 @@ mod test {
         ];
 
         let result = parser.parse(input);
-
+        println!("{:?}", result);
         if let Ok(Query::Update(update_query)) = result {
             assert_eq!(update_query.table_name, "my_table");
             assert_eq!(update_query.columns, vec!["column1".to_string()]);

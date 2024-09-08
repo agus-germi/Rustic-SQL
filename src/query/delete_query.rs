@@ -25,11 +25,9 @@ impl CommandParser for DeleteParser {
 
         Ok(())
     }
-
-
+    
     fn parse(&self, parsed_query: Vec<String>) -> Result<Query, ErrorType> {
         let table_name: String;
-        //TODO: get rid of duplicated code
         let table_name_index = parsed_query.iter().position(|x| x == "from");
         if let Some(index) = table_name_index {
             table_name = parsed_query[index + 1].to_string();

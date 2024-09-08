@@ -5,7 +5,8 @@ use std::{
 
 use super::{CommandParser, Query};
 use crate::{
-    error::{self, print_error, ErrorType},    extras::{cleaned_values, get_column_index},
+    error::{self, print_error, ErrorType},
+    extras::{cleaned_values, get_column_index},
 };
 
 #[derive(Debug)]
@@ -20,17 +21,26 @@ pub struct InsertParser;
 impl CommandParser for InsertParser {
     fn validate_syntax(&self, parsed_query: &[String]) -> Result<(), ErrorType> {
         if parsed_query.len() < 4 || parsed_query[0] != "insert" || parsed_query[1] != "into" {
-            error::print_error(ErrorType::InvalidSyntax, "Sintaxis inválida: falta 'INSERT INTO'");
+            error::print_error(
+                ErrorType::InvalidSyntax,
+                "Sintaxis inválida: falta 'INSERT INTO'",
+            );
             return Err(ErrorType::InvalidSyntax);
         }
-        let table_name_index = parsed_query.iter().position(|x| x == "into").map(|index| index + 1);
+        let table_name_index = parsed_query
+            .iter()
+            .position(|x| x == "into")
+            .map(|index| index + 1);
         let values_start = parsed_query.iter().position(|x| x == "values");
         let table_index = table_name_index.ok_or(ErrorType::InvalidSyntax)?;
         let value_index = values_start.ok_or(ErrorType::InvalidSyntax)?;
-        let number_col = parsed_query[table_index + 1 .. value_index].len();
-        let number_val = parsed_query[value_index + 1 ..].len();
-        if  number_col != number_val {
-            error::print_error(ErrorType::InvalidSyntax, "Cantidad de columnas no coincide con cantidad de valores");
+        let number_col = parsed_query[table_index + 1..value_index].len();
+        let number_val = parsed_query[value_index + 1..].len();
+        if number_col != number_val {
+            error::print_error(
+                ErrorType::InvalidSyntax,
+                "Cantidad de columnas no coincide con cantidad de valores",
+            );
             return Err(ErrorType::InvalidSyntax);
         }
 
@@ -110,7 +120,6 @@ pub fn write_csv(path: &str, values: Option<Vec<String>>) {
         .open(path)
         .map_err(|e| e.to_string());
 
-    //TODO: get rid of this duplucated code in the open_file function
     let mut file = match file {
         Ok(f) => f,
         Err(e) => {
@@ -136,8 +145,8 @@ pub fn write_csv(path: &str, values: Option<Vec<String>>) {
 
 #[cfg(test)]
 mod tests {
-    use std::fs;
     use super::*;
+    use std::fs;
 
     #[test]
     fn test_insert_parser() {

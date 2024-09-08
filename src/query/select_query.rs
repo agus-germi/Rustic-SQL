@@ -24,48 +24,38 @@ pub struct SelectQuery {
 pub struct SelectParser;
 impl CommandParser for SelectParser {
     fn validate_syntax(&self, parsed_query: &[String]) -> Result<(), ErrorType> {
-        if parsed_query.len() < 4 || parsed_query[0] != "select" || !parsed_query.contains(&"from".to_string()) {
-            error::print_error(ErrorType::InvalidSyntax, "Sintaxis inválida: falta 'SELECT' o 'FROM'");
+        if parsed_query.len() < 4
+            || parsed_query[0] != "select"
+            || !parsed_query.contains(&"from".to_string())
+        {
+            error::print_error(
+                ErrorType::InvalidSyntax,
+                "Sintaxis inválida: falta 'SELECT' o 'FROM'",
+            );
             return Err(ErrorType::InvalidSyntax);
         }
 
-        let from_index = parsed_query.iter().position(|x| x == "from").ok_or(ErrorType::InvalidSyntax)?;
+        let from_index = parsed_query
+            .iter()
+            .position(|x| x == "from")
+            .ok_or(ErrorType::InvalidSyntax)?;
         if from_index <= 1 {
-            error::print_error(ErrorType::InvalidSyntax, "Sintaxis inválida: falta la lista de columnas");
+            error::print_error(
+                ErrorType::InvalidSyntax,
+                "Sintaxis inválida: falta la lista de columnas",
+            );
             return Err(ErrorType::InvalidSyntax);
         }
 
         Ok(())
     }
 
-    //[ ]: reduce lines of code in parse function -> 35
     fn parse(&self, parsed_query: Vec<String>) -> Result<Query, ErrorType> {
-        let table_name: String;
-        //TODO: get rid of duplicated code
-        let table_name_index = parsed_query.iter().position(|x| x == "from");
-        if let Some(index) = table_name_index {
-            table_name = parsed_query[index + 1].to_string();
-        } else {
-            error::print_error(ErrorType::InvalidSyntax, "Sintaxis inválida, falta 'from'");
-            return Err(ErrorType::InvalidSyntax);
-        }
+        let table_name = extract_table_name(&parsed_query)?;
         let columns = cleaned_values(get_columns(&parsed_query));
         let mut condition = cleaned_values(get_condition_columns(&parsed_query));
-        let mut order_index = 0;
-        let mut order_by: Vec<String> = Vec::new();
-        let _order_index = condition
-            .iter()
-            .position(|x| x == "order")
-            .and_then(|index| {
-                if index + 1 < condition.len() && condition[index + 1] == "by" {
-                    order_index = index + 2;
-                    order_by = cleaned_values(condition[order_index..].to_vec());
-                    condition = condition[..index].to_vec();
-                    Some(index)
-                } else {
-                    None
-                }
-            });
+        let order_by = extract_order_by(&mut condition);
+
         Ok(Query::Select(SelectQuery {
             table_name,
             columns,
@@ -75,6 +65,27 @@ impl CommandParser for SelectParser {
     }
 }
 
+fn extract_table_name(parsed_query: &[String]) -> Result<String, ErrorType> {
+    parsed_query
+        .iter()
+        .position(|x| x == "from")
+        .map(|index| parsed_query[index + 1].to_string())
+        .ok_or_else(|| {
+            error::print_error(ErrorType::InvalidSyntax, "Sintaxis inválida, falta 'from'");
+            ErrorType::InvalidSyntax
+        })
+}
+
+fn extract_order_by(condition: &mut Vec<String>) -> Vec<String> {
+    if let Some(index) = condition.iter().position(|x| x == "order") {
+        if index + 1 < condition.len() && condition[index + 1] == "by" {
+            let order_by = cleaned_values(condition[index + 2..].to_vec());
+            *condition = condition[..index].to_vec(); // Modify condition to exclude order clause
+            return order_by;
+        }
+    }
+    Vec::new()
+}
 pub fn filter_row(row: &Vec<String>, condition: &[String], headers: &[&str]) -> bool {
     if condition.is_empty() {
         return true;
@@ -157,42 +168,30 @@ pub fn parse_order_by(
     headers: &[&str],
 ) -> (HashMap<usize, String>, Vec<usize>) {
     let mut order_map = HashMap::new();
-    let mut insertion_order: Vec<usize> = Vec::new();
+    let mut insertion_order = Vec::new();
+
+    let headers_vec: Vec<String> = headers.iter().map(|s| s.to_string()).collect();
+
     let mut i = 0;
-    let mut column_index;
     while i < order_by.len() {
         let column = &order_by[i];
-        if i + 1 < order_by.len() {
-            if &order_by[i + 1] == "asc" || &order_by[i + 1] == "desc" {
-                column_index = get_column_index(
-                    &headers
-                        .iter()
-                        .map(|s| s.to_string())
-                        .collect::<Vec<String>>(),
-                    column,
-                ) as usize;
-                insertion_order.push(column_index);
-
-                order_map.insert(column_index, order_by[i + 1].to_string());
+        let direction =
+            if i + 1 < order_by.len() && (order_by[i + 1] == "asc" || order_by[i + 1] == "desc") {
                 i += 2;
-            }
-        } else {
-            column_index = get_column_index(
-                &headers
-                    .iter()
-                    .map(|s| s.to_string())
-                    .collect::<Vec<String>>(),
-                column,
-            ) as usize;
-            insertion_order.push(column_index);
+                &order_by[i - 1]
+            } else {
+                i += 1;
+                "asc"
+            };
 
-            order_map.insert(column_index, "asc".to_string());
-            i += 1;
-        }
+        let column_index = get_column_index(&headers_vec, column) as usize;
+        insertion_order.push(column_index);
+        order_map.insert(column_index, direction.to_string());
     }
+
     (order_map, insertion_order)
 }
-// [ ]: reduce lines of code in order_rows function -> 41
+
 fn order_rows(
     result_table: &mut [String],
     order_map: HashMap<usize, String>,
@@ -201,40 +200,34 @@ fn order_rows(
     result_table.sort_by(|a, b| {
         let columns_a: Vec<&str> = a.split(',').collect();
         let columns_b: Vec<&str> = b.split(',').collect();
+
         for &index in &insertion_order {
             if let Some(order) = order_map.get(&index) {
-                let val_a = columns_a[index];
-                let val_b = columns_b[index];
-                let val_a = cast_to_value(val_a);
-                let val_b = cast_to_value(val_b);
+                let cmp = compare_columns(columns_a[index], columns_b[index]);
 
-                let a_str = get_str_value(&val_a);
-                let b_str = get_str_value(&val_b);
-                let a_int = get_int_value(&val_a);
-                let b_int = get_int_value(&val_b);
-
-                let cmp = match (a_int, b_int, a_str, b_str) {
-                    (Some(i1), Some(i2), _, _) => i1.cmp(&i2),
-                    (_, _, Some(s1), Some(s2)) => s1.cmp(&s2),
-                    _ => std::cmp::Ordering::Equal,
-                };
-                match order.as_str() {
-                    "asc" => {
-                        if cmp != std::cmp::Ordering::Equal {
-                            return cmp;
-                        }
-                    }
-                    "desc" => {
-                        if cmp != std::cmp::Ordering::Equal {
-                            return cmp.reverse();
-                        }
-                    }
-                    _ => (),
+                if cmp != std::cmp::Ordering::Equal {
+                    return if order == "asc" { cmp } else { cmp.reverse() };
                 }
             }
         }
         std::cmp::Ordering::Equal
     });
+}
+
+fn compare_columns(val_a: &str, val_b: &str) -> std::cmp::Ordering {
+    let val_a = cast_to_value(val_a);
+    let val_b = cast_to_value(val_b);
+
+    match (
+        get_int_value(&val_a),
+        get_int_value(&val_b),
+        get_str_value(&val_a),
+        get_str_value(&val_b),
+    ) {
+        (Some(i1), Some(i2), _, _) => i1.cmp(&i2),
+        (_, _, Some(s1), Some(s2)) => s1.cmp(&s2),
+        _ => std::cmp::Ordering::Equal,
+    }
 }
 
 fn extract_bools_and_operators(
