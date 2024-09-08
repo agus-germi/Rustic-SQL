@@ -103,10 +103,8 @@ pub fn filter_row(row: &Vec<String>, condition: &[String], headers: &[&str]) -> 
     }
 }
 
-pub fn select(query: SelectQuery) -> Result<(), ErrorType> {
-    println!("Selecting from table: {}", query.table_name);
-    let relative_path = format!("{}.csv", query.table_name);
-    if let Ok(file) = File::open(&relative_path) {
+pub fn select(path:&str, query: SelectQuery) -> Result<(), ErrorType> {
+    if let Ok(file) = File::open(&path) {
         let mut reader: io::BufReader<File> = io::BufReader::new(file);
         let mut header: String = String::new();
         let _ = reader.read_line(&mut header);

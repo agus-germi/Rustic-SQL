@@ -112,9 +112,9 @@ fn extract_columns_and_values(
     (cleaned_values(columns), cleaned_values(values))
 }
 
-pub fn update(query: UpdateQuery) -> Result<(), ErrorType> {
-    let relative_path = format!("{}.csv", query.table_name);
-    let file = File::open(&relative_path).map_err(|_| {
+pub fn update(path: &str,query: UpdateQuery) -> Result<(), ErrorType> {
+
+    let file = File::open(&path).map_err(|_| {
         print_error(ErrorType::InvalidTable, "No se pudo abrir el archivo");
         ErrorType::InvalidTable
     })?;
@@ -138,17 +138,17 @@ pub fn update(query: UpdateQuery) -> Result<(), ErrorType> {
             &query.values,
         );
         return {
-            write_csv(&relative_path, Some(row_to_insert));
+            write_csv(&path, Some(row_to_insert));
             Ok(())
         };
     }
 
-    update_rows(&relative_path, reader, &headers, &query)?;
+    update_rows(&path, reader, &headers, &query)?;
     Ok(())
 }
 
 fn update_rows(
-    relative_path: &str,
+    path: &str,
     reader: io::BufReader<File>,
     headers: &[&str],
     query: &UpdateQuery,
@@ -163,7 +163,7 @@ fn update_rows(
 
         if filter_row(&values, &query.condition, headers) {
             let updated_line = create_updated_line(headers, &query.columns, &query.values, &values);
-            let _ = update_line(relative_path, i + 1, Some(&updated_line));
+            let _ = update_line(path, i + 1, Some(&updated_line));
         }
     }
     Ok(())

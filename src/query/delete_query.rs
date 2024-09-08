@@ -25,7 +25,7 @@ impl CommandParser for DeleteParser {
 
         Ok(())
     }
-    
+
     fn parse(&self, parsed_query: Vec<String>) -> Result<Query, ErrorType> {
         let table_name: String;
         let table_name_index = parsed_query.iter().position(|x| x == "from");
@@ -43,10 +43,9 @@ impl CommandParser for DeleteParser {
     }
 }
 
-pub fn delete(delete_query: DeleteQuery) -> Result<(), ErrorType> {
-    let relative_path = format!("{}.csv", delete_query.table_name);
+pub fn delete(path: &str, delete_query: DeleteQuery) -> Result<(), ErrorType> {
     let mut index: usize = 0;
-    if let Ok(file) = File::open(&relative_path) {
+    if let Ok(file) = File::open(&path) {
         let mut reader: io::BufReader<File> = io::BufReader::new(file);
         let mut header: String = String::new();
         let _ = reader.read_line(&mut header);
@@ -58,7 +57,7 @@ pub fn delete(delete_query: DeleteQuery) -> Result<(), ErrorType> {
             if let Ok(line) = line {
                 let values: Vec<String> = line.split(",").map(|s| s.to_string()).collect();
                 if filter_row(&values, &delete_query.condition, &headers) {
-                    let _ = delete_line(&relative_path, index);
+                    let _ = delete_line(&path, index);
                     index -= 1;
                 };
             } else {
@@ -148,7 +147,7 @@ mod tests {
             condition: vec!["id".to_string(), "=".to_string(), "1".to_string()],
         };
 
-        let _ = delete(delete_query);
+        let _ = delete(test_file,delete_query);
 
         let contents = fs::read_to_string(test_file)?;
         let expected_result = "id,name\n2,Tina\n";

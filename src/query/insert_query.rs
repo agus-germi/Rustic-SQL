@@ -74,9 +74,9 @@ impl CommandParser for InsertParser {
     }
 }
 
-pub fn insert(query: InsertQuery) -> Result<(), ErrorType> {
-    let relative_path = format!("{}.csv", query.table_name);
-    if let Ok(file) = File::open(&relative_path) {
+pub fn insert(path: &str,query: InsertQuery) -> Result<(), ErrorType> {
+
+    if let Ok(file) = File::open(&path) {
         let mut reader: io::BufReader<File> = io::BufReader::new(file);
         let mut header: String = String::new();
         let _ = reader.read_line(&mut header);
@@ -84,7 +84,7 @@ pub fn insert(query: InsertQuery) -> Result<(), ErrorType> {
         let headers: Vec<String> = header.split(',').map(|s| s.to_string()).collect();
         let row_to_insert = generate_row_to_insert(&headers, &query.columns, &query.values);
 
-        write_csv(&relative_path, Some(row_to_insert));
+        write_csv(&path, Some(row_to_insert));
     } else {
         print_error(ErrorType::InvalidTable, "No se pudo abrir el archivo");
         return Err(ErrorType::InvalidTable);
@@ -201,7 +201,6 @@ mod tests {
 
     #[test]
     fn test_insert() -> Result<(), Box<dyn std::error::Error>> {
-        // Set up test file
         let test_file = "test_insert.csv";
 
         let mut file = File::create(test_file)?;
@@ -213,7 +212,7 @@ mod tests {
             values: vec!["Alice".to_string(), "30".to_string()],
         };
 
-        let _ = insert(insert_query);
+        let _ = insert(test_file,insert_query);
 
         let contents = fs::read_to_string(test_file)?;
         assert!(contents.contains(",Alice,30"));

@@ -28,8 +28,9 @@ fn main() {
         return;
     }
     let query = &args[2];
+    let path = &args[1];
 
-    if let Err(_error) = parse_query(query) {}
+    if let Err(_error) = parse_query(path, query) {}
 }
 // -- MINI FILTER FUNCTION --
 trait Operations {
@@ -92,19 +93,19 @@ pub fn filter(value1: Value, value2: Value, operator: &str) -> bool {
 }
 
 // --
-pub fn execute(query: Query) {
+pub fn execute(path:&str, query: Query) {
     match query {
         Query::Select(select_query) => {
-            let _ = select(select_query);
+            let _ = select(path, select_query);
         }
         Query::Insert(insert_query) => {
-            let _ = insert(insert_query);
+            let _ = insert(path, insert_query);
         }
         Query::Delete(delete_query) => {
-            let _ = delete(delete_query);
+            let _ = delete(path, delete_query);
         }
         Query::Update(update_query) => {
-            let _ = update(update_query);
+            let _ = update(path, update_query);
         }
     }
 }
