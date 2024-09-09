@@ -87,8 +87,16 @@ impl Operations for LessThanOperator {
 ///
 /// # Ejemplo
 /// ```rust
-/// let resultado = filter(value1, value2, "=");
+/// use sql::extras::Value;
+/// use sql::operations::filter;
+///
+/// let value1 = Value::Int(10);
+/// let value2 = Value::Int(20);
+///
+/// let resultado = filter(value1, value2, "<");
+/// assert_eq!(resultado, true);
 /// ```
+
 pub fn filter(value1: Value, value2: Value, operator: &str) -> bool {
     let operator: Box<dyn Operations> = match operator {
         "=" => Box::new(EqualOperator),
