@@ -1,9 +1,31 @@
 #[derive(Debug, PartialEq)]
+
+/// Representa un valor que puede ser un entero (`Int`) o una cadena (`Str`).
 pub enum Value {
     Int(i32),
     Str(String),
 }
 
+/// Convierte una cadena de texto en un `Value`. Si la cadena puede convertirse en un entero,
+/// devuelve un `Value::Int`. De lo contrario, devuelve un `Value::Str`.
+///
+/// # Argumentos
+/// * `s` - La cadena de texto a convertir.
+///
+/// # Retorna
+/// * Un `Value` que puede ser un entero o una cadena.
+///
+/// # Ejemplo
+/// ```rust
+/// use sql::extras::cast_to_value;
+/// use sql::extras::Value;
+/// 
+/// let v = cast_to_value("42");
+/// assert_eq!(v, Value::Int(42));
+/// let v = cast_to_value("hello");
+/// assert_eq!(v, Value::Str("hello".to_string()));
+/// ```
+/// 
 pub fn cast_to_value(s: &str) -> Value {
     if let Ok(int_value) = s.parse::<i32>() {
         Value::Int(int_value)
@@ -12,6 +34,24 @@ pub fn cast_to_value(s: &str) -> Value {
     }
 }
 
+/// Obtiene el valor entero de un `Value`, si es de tipo `Int`. Si es de tipo `Str`, devuelve `None`.
+///
+/// # Argumentos
+/// * `value` - El `Value` del que se quiere obtener el valor entero.
+///
+/// # Retorna
+/// * `Some(i32)` si el `Value` es de tipo `Int`.
+/// * `None` si el `Value` es de tipo `Str`.
+///
+/// # Ejemplo
+/// ```rust
+/// use sql::extras::Value;
+/// use sql::extras::get_int_value;
+/// let v = Value::Int(42);
+/// assert_eq!(get_int_value(&v), Some(42));
+/// let v = Value::Str("hello".to_string());
+/// assert_eq!(get_int_value(&v), None);
+/// ```
 pub fn get_int_value(value: &Value) -> Option<i32> {
     match value {
         Value::Int(v) => Some(*v),
@@ -19,6 +59,26 @@ pub fn get_int_value(value: &Value) -> Option<i32> {
     }
 }
 
+/// Obtiene el valor de una cadena de un `Value`, si es de tipo `Str`, y lo convierte a minúsculas.
+/// Si el `Value` es de tipo `Int`, devuelve `None`.
+///
+/// # Argumentos
+/// * `value` - El `Value` del que se quiere obtener la cadena.
+///
+/// # Retorna
+/// * `Some(String)` si el `Value` es de tipo `Str`.
+/// * `None` si el `Value` es de tipo `Int`.
+///
+/// # Ejemplo
+/// ```rust
+/// use sql::extras::Value;
+/// use sql::extras::get_str_value;
+/// let v = Value::Str("HELLO".to_string());
+/// assert_eq!(get_str_value(&v), Some("hello".to_string()));
+/// let v = Value::Int(42);
+/// assert_eq!(get_str_value(&v), None);
+/// ```
+/// 
 pub fn get_str_value(value: &Value) -> Option<String> {
     match value {
         Value::Int(_) => None,
@@ -26,6 +86,16 @@ pub fn get_str_value(value: &Value) -> Option<String> {
     }
 }
 
+
+/// Extrae las columnas de una consulta SQL parseada, deteniéndose antes de la palabra clave "from".
+/// Si la consulta comienza con "update", buscará "set" antes de empezar a extraer columnas.
+///
+/// # Argumentos
+/// * `parsed_query` - Una consulta SQL parseada como un vector de cadenas.
+///
+/// # Retorna
+/// * Un vector de cadenas con los nombres de las columnas.
+/// 
 pub fn get_columns(parsed_query: &[String]) -> Vec<String> {
     let mut columns = Vec::new();
     let mut index = 1;
@@ -42,6 +112,14 @@ pub fn get_columns(parsed_query: &[String]) -> Vec<String> {
     columns
 }
 
+/// Extrae las columnas que aparecen después de la palabra clave "where" en una consulta SQL parseada.
+///
+/// # Argumentos
+/// * `parsed_query` - Una consulta SQL parseada como un vector de cadenas.
+///
+/// # Retorna
+/// * Un vector de cadenas con las columnas que aparecen en las condiciones.
+///
 pub fn get_condition_columns(parsed_query: &[String]) -> Vec<String> {
     let mut condition_columns = Vec::new();
     let index = parsed_query.iter().position(|x| x == "where");
@@ -55,6 +133,15 @@ pub fn get_condition_columns(parsed_query: &[String]) -> Vec<String> {
     condition_columns
 }
 
+/// Busca el índice de una columna en el encabezado de la tabla.
+///
+/// # Argumentos
+/// * `headers` - Un vector con los nombres de las columnas.
+/// * `column_name` - El nombre de la columna cuyo índice se busca.
+///
+/// # Retorna
+/// * El índice de la columna si se encuentra, o -1 si no.
+///
 pub fn get_column_index(headers: &[String], column_name: &str) -> isize {
     headers
         .iter()
@@ -64,6 +151,14 @@ pub fn get_column_index(headers: &[String], column_name: &str) -> isize {
         .unwrap_or(-1)
 }
 
+/// Limpia los valores de las columnas eliminando caracteres como paréntesis, comas, apóstrofes y punto y coma.
+///
+/// # Argumentos
+/// * `columns` - Un vector de cadenas que representan las columnas.
+///
+/// # Retorna
+/// * Un nuevo vector con las columnas limpias.
+///
 pub fn cleaned_values(columns: Vec<String>) -> Vec<String> {
     columns
         .iter()
