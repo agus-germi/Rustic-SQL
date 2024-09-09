@@ -15,14 +15,31 @@ use crate::{
 };
 
 #[derive(Debug)]
+
+/// Representa una consulta `UPDATE`, con los parámetros:
+/// 
+/// * `table_name` - El nombre de la tabla a actualizar.
+/// * `columns` - Las columnas que se actualizarán.
+/// * `values` - Los nuevos valores para las columnas.
+/// * `condition` - La condición para seleccionar las filas a actualizar.
+/// 
 pub struct UpdateQuery {
     pub table_name: String,
     pub columns: Vec<String>,
     pub values: Vec<String>,
     pub condition: Vec<String>,
 }
+
 pub struct UpdateParser;
 impl CommandParser for UpdateParser {
+    /// Valida la sintaxis de la consulta `UPDATE`.
+    ///
+    /// # Argumentos
+    /// * `parsed_query` - Una referencia a un `Vec<String>` con los componentes de la consulta ya parseados.
+    ///
+    /// # Retorno
+    /// Devuelve `Ok(())` si la sintaxis es válida, o `Err(ErrorType)` si es inválida.
+    /// 
     fn validate_syntax(&self, parsed_query: &[String]) -> Result<(), ErrorType> {
         if parsed_query.len() < 4
             || parsed_query[0] != "update"
@@ -59,6 +76,15 @@ impl CommandParser for UpdateParser {
 
         Ok(())
     }
+
+    /// Parsea la consulta `UPDATE` en un objeto `Query`.
+    ///
+    /// # Argumentos
+    /// * `parsed_query` - Una `Vec<String>` que contiene los componentes de la consulta.
+    ///
+    /// # Retorno
+    /// Devuelve un `Query::Update` que contiene los detalles de la consulta, o un `Err(ErrorType)` en caso de error.
+    /// 
     fn parse(&self, parsed_query: Vec<String>) -> Result<Query, ErrorType> {
         let table_name = extract_table_name(&parsed_query)?;
         let set_index = parsed_query.iter().position(|x| x == "set").unwrap_or(0);
@@ -76,6 +102,14 @@ impl CommandParser for UpdateParser {
     }
 }
 
+/// Extrae el nombre de la tabla de la consulta de actualización.
+///
+/// # Argumentos
+/// * `parsed_query` - Un vector de `String` que representa la consulta descompuesta en tokens.
+///
+/// # Retorno
+/// Devuelve el nombre de la tabla como un `String` si se encuentra, o un `ErrorType::InvalidSyntax` si no se encuentra.
+/// 
 fn extract_table_name(parsed_query: &[String]) -> Result<String, ErrorType> {
     parsed_query
         .iter()
@@ -90,6 +124,15 @@ fn extract_table_name(parsed_query: &[String]) -> Result<String, ErrorType> {
         })
 }
 
+/// Extrae las columnas y los valores de la consulta de actualización.
+///
+/// # Argumentos
+/// * `parsed_query` - Un vector de `String` que representa la consulta descompuesta en tokens.
+/// * `start_index` - El índice de inicio para la extracción de columnas y valores.
+///
+/// # Retorno
+/// Devuelve una tupla con dos vectores de `String`, el primero contiene las columnas y el segundo contiene los valores.
+/// 
 fn extract_columns_and_values(
     parsed_query: &[String],
     start_index: usize,
@@ -102,9 +145,9 @@ fn extract_columns_and_values(
         if parsed_query[i] == "=" && i + 1 < parsed_query.len() {
             columns.push(parsed_query[i - 1].to_string());
             values.push(parsed_query[i + 1].to_string());
-            i += 2; // Move past the current column=value pair
+            i += 2; 
         } else if parsed_query[i] == "where" {
-            break; // Stop processing when "where" is found
+            break; 
         } else {
             i += 1;
         }
@@ -112,7 +155,15 @@ fn extract_columns_and_values(
 
     (cleaned_values(columns), cleaned_values(values))
 }
-
+/// Actualiza las filas del archivo según la consulta.
+///
+/// # Argumentos
+/// * `path` - La ruta del archivo CSV.
+/// * `query` - La consulta de actualización.
+///
+/// # Retorno
+/// Devuelve `Ok(())` si la actualización es exitosa, o un `ErrorType` si ocurre un error durante la actualización.
+/// 
 pub fn update(path: &str, query: UpdateQuery) -> Result<(), ErrorType> {
     let file = File::open(path).map_err(|_| {
         print_error(ErrorType::InvalidTable, "No se pudo abrir el archivo");
@@ -147,6 +198,20 @@ pub fn update(path: &str, query: UpdateQuery) -> Result<(), ErrorType> {
     Ok(())
 }
 
+/// Actualiza las filas en el archivo basándose en la condición de la consulta.
+///
+/// # Argumentos
+/// * `path` - La ruta del archivo CSV.
+/// * `reader` - Un `BufReader` para leer el archivo.
+/// * `headers` - Los encabezados de las columnas.
+/// * `query` - La consulta de actualización.
+///
+/// # Retorno
+/// Devuelve `Ok(())` si la actualización es exitosa, o un `ErrorType` si ocurre un error durante la actualización.
+/// 
+/// # Notas
+/// Se toma linea a linea y se filtra según la condición indicada en la consulta. Si la fila cumple con la condición, se actualiza.
+/// 
 fn update_rows(
     path: &str,
     reader: io::BufReader<File>,
@@ -169,6 +234,17 @@ fn update_rows(
     Ok(())
 }
 
+/// Crea una línea actualizada con los nuevos valores.
+///
+/// # Argumentos
+/// * `headers` - Los encabezados de las columnas.
+/// * `columns` - Las columnas que se actualizarán.
+/// * `values_to_update` - Los nuevos valores para las columnas.
+/// * `values` - Los valores actuales en la fila.
+///
+/// # Retorno
+/// Devuelve un vector de `String` que representa la línea actualizada.
+/// 
 pub fn create_updated_line(
     headers: &[&str],
     columns: &Vec<String>,
@@ -204,6 +280,16 @@ pub fn create_updated_line(
     row_to_insert
 }
 
+/// Actualiza una línea específica en el archivo CSV.
+///
+/// # Argumentos
+/// * `file_path` - La ruta del archivo CSV.
+/// * `line_index` - El índice de la línea a actualizar.
+/// * `row` - Una opción que contiene la nueva línea, o `None` para mantener la línea original.
+///
+/// # Retorno
+/// Devuelve un `io::Result<()>` que indica el éxito o el fallo de la operación.
+/// 
 pub fn update_line(
     file_path: &str,
     line_index: usize,
