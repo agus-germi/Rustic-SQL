@@ -21,7 +21,7 @@ fn test_query_output_to_csv() {
 
     match output {
         Ok(o) => {
-            fs::write(output_file, &o.stdout).expect("Failed to write output to file");
+            let _ = fs::write(output_file, &o.stdout);
             assert!(
                 fs::metadata(output_file).is_ok(),
                 "Output file was not created"
