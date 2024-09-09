@@ -6,10 +6,10 @@ use std::io::Write;
 use std::process::Command;
 
 #[test]
-#[ignore = "not yet implemented"]
-fn test_query_output_to_csv() {
-    let output_file = "tests/output.csv";
+fn test_select_every_row() {
+    let output_file = "tests/output1.csv";
 
+    // Borro el archivo si ya existe
     let _ = fs::remove_file(output_file);
 
     let output = Command::new("cargo")
@@ -19,24 +19,218 @@ fn test_query_output_to_csv() {
         .arg("SELECT * FROM ordenes;")
         .output();
 
-    match output {
-        Ok(o) => {
-            let _ = fs::write(output_file, &o.stdout);
-            assert!(
-                fs::metadata(output_file).is_ok(),
-                "Output file was not created"
-            );
-
-            let actual_output = fs::read_to_string(output_file).expect("msg");
-
-            let expected_output = "id,producto,id_cliente\n102,Teléfono,2\n105,Mouse,4\n109,Laptop,5\n110,Teléfono,6\n111,Laptop,6\n";
-
-            assert_eq!(actual_output, expected_output);
+    let output = match output {
+        Ok(o) => o,
+        Err(e) => {
+            eprintln!("No se pudo ejecutar el comando: {}", e);
+            return;
         }
-        Err(_) => {
-            assert_eq!(true, false);
+    };
+
+    fs::write(output_file, &output.stdout).unwrap_or(());
+
+    assert!(fs::metadata(output_file).is_ok(), "Output no fue creado");
+
+    //leo el output file
+    let actual_output = match fs::read_to_string(output_file) {
+        Ok(content) => content,
+        Err(e) => {
+            eprintln!("No se pudo leer el output file: {}", e);
+            return;
         }
-    }
+    };
+    let expected_output = "id,id_cliente,producto,cantidad\n101,1,Laptop,1\n103,1,Monitor,1\n102,2,Teléfono,2\n104,3,Teclado,1\n105,4,Mouse,2\n106,5,Impresora,1\n107,6,Altavoces,1\n108,4,Auriculares,1\n109,5,Laptop,1\n110,6,Teléfono,2\n";
+
+    assert_eq!(
+        actual_output, expected_output,
+        "Output no coincide con el resultado esperado"
+    );
+    let _ = fs::remove_file(output_file); //borro el archivo después de la prueba
+}
+
+#[test]
+fn test_select_with_where_clause() {
+    let output_file = "tests/output2.csv";
+
+    let _ = std::fs::remove_file(output_file);
+
+    let output = std::process::Command::new("cargo")
+        .arg("run")
+        .arg("--")
+        .arg("tests/ordenes.csv")
+        .arg("SELECT id, producto, id_cliente FROM ordenes WHERE cantidad > 1;")
+        .output();
+
+    let output = match output {
+        Ok(o) => o,
+        Err(e) => {
+            eprintln!("No se pudo ejecutar el comando: {}", e);
+            return;
+        }
+    };
+
+    std::fs::write(output_file, &output.stdout).unwrap_or(());
+
+    assert!(
+        std::fs::metadata(output_file).is_ok(),
+        "Output no fue creado"
+    );
+
+    let actual_output = match std::fs::read_to_string(output_file) {
+        Ok(content) => content,
+        Err(e) => {
+            eprintln!("No se pudo leer el output file: {}", e);
+            return;
+        }
+    };
+
+    let expected_output = "id,producto,id_cliente\n102,Teléfono,2\n105,Mouse,4\n110,Teléfono,6\n";
+
+    assert_eq!(
+        actual_output, expected_output,
+        "Output no coincide con el resultado esperado"
+    );
+
+    let _ = std::fs::remove_file(output_file);
+}
+
+#[test]
+fn test_select_with_where_and_order_by_clause() {
+    let output_file = "tests/output3.csv";
+
+    let _ = std::fs::remove_file(output_file);
+
+    let output = std::process::Command::new("cargo")
+        .arg("run")
+        .arg("--")
+        .arg("tests/clientes.csv")
+        .arg("SELECT id, nombre, email FROM clientes WHERE apellido = 'López' ORDER BY email DESC;")
+        .output();
+
+    let output = match output {
+        Ok(o) => o,
+        Err(e) => {
+            eprintln!("No se pudo ejecutar el comando: {}", e);
+            return;
+        }
+    };
+
+    std::fs::write(output_file, &output.stdout).unwrap_or(());
+
+    assert!(
+        std::fs::metadata(output_file).is_ok(),
+        "No se creó el archivo de salida"
+    );
+
+    let actual_output = match std::fs::read_to_string(output_file) {
+        Ok(content) => content,
+        Err(e) => {
+            eprintln!("No se pudo leer el archivo de salida: {}", e);
+            return;
+        }
+    };
+
+    let expected_output =
+        "id,nombre,email\n5,José,jose.lopez@email.com\n2,Ana,ana.lopez@email.com\n";
+
+    assert_eq!(
+        actual_output, expected_output,
+        "El resultado no coincide con el resultado esperado"
+    );
+
+    let _ = std::fs::remove_file(output_file);
+}
+
+#[test]
+fn test_select_with_two_conditions() {
+    let output_file = "tests/output4.csv";
+
+    let _ = std::fs::remove_file(output_file);
+
+    let output = std::process::Command::new("cargo")
+        .arg("run")
+        .arg("--")
+        .arg("tests/ordenes.csv")
+        .arg("SELECT id, id_cliente, producto, cantidad FROM ordenes WHERE cantidad > 1 AND producto = 'mouse';")
+        .output();
+
+    let output = match output {
+        Ok(o) => o,
+        Err(e) => {
+            eprintln!("No se pudo ejecutar el comando: {}", e);
+            return;
+        }
+    };
+
+    std::fs::write(output_file, &output.stdout).unwrap_or(());
+
+    assert!(
+        std::fs::metadata(output_file).is_ok(),
+        "No se creó el archivo de salida"
+    );
+
+    let actual_output = match std::fs::read_to_string(output_file) {
+        Ok(content) => content,
+        Err(e) => {
+            eprintln!("No se pudo leer el archivo de salida: {}", e);
+            return;
+        }
+    };
+
+    let expected_output = "id,id_cliente,producto,cantidad\n105,4,Mouse,2\n";
+
+    assert_eq!(
+        actual_output, expected_output,
+        "El resultado no coincide con el resultado esperado"
+    );
+
+    let _ = std::fs::remove_file(output_file);
+}
+
+#[test]
+fn test_select_with_three_conditions() {
+    let output_file = "tests/output5.csv";
+
+    let _ = std::fs::remove_file(output_file);
+
+    let output = std::process::Command::new("cargo")
+        .arg("run")
+        .arg("--")
+        .arg("tests/ordenes.csv")
+        .arg("SELECT id, id_cliente, producto, cantidad FROM ordenes WHERE producto = 'mouse' or id_cliente = 6 and cantidad > 1;")
+        .output();
+
+    let output = match output {
+        Ok(o) => o,
+        Err(e) => {
+            eprintln!("No se pudo ejecutar el comando: {}", e);
+            return;
+        }
+    };
+
+    std::fs::write(output_file, &output.stdout).unwrap_or(());
+
+    assert!(
+        std::fs::metadata(output_file).is_ok(),
+        "No se creó el archivo de salida"
+    );
+
+    let actual_output = match std::fs::read_to_string(output_file) {
+        Ok(content) => content,
+        Err(e) => {
+            eprintln!("No se pudo leer el archivo de salida: {}", e);
+            return;
+        }
+    };
+
+    let expected_output = "id,id_cliente,producto,cantidad\n105,4,Mouse,2\n110,6,Teléfono,2\n";
+
+    assert_eq!(
+        actual_output, expected_output,
+        "El resultado no coincide con el resultado esperado"
+    );
+
+    let _ = std::fs::remove_file(output_file);
 }
 
 #[test]
