@@ -16,6 +16,14 @@ use crate::{
 use crate::operations::filter;
 
 #[derive(Debug)]
+
+/// Representa una consulta `SELECT`, con los parámetros:
+/// 
+/// * `table_name` - Nombre de la tabla de la cual se seleccionarán los datos.
+/// * `columns` - Columnas que se van a seleccionar.
+/// * `condition` - Condiciones que deben cumplirse para seleccionar filas.
+/// * `order_by` - Criterios de ordenamiento para los resultados.
+/// 
 pub struct SelectQuery {
     pub table_name: String,
     pub columns: Vec<String>,
@@ -24,6 +32,14 @@ pub struct SelectQuery {
 }
 pub struct SelectParser;
 impl CommandParser for SelectParser {
+    /// Valida la sintaxis de la consulta `SELECT`.
+    ///
+    /// # Argumentos
+    /// * `parsed_query` - Una referencia a un `Vec<String>` con los componentes de la consulta ya parseados.
+    ///
+    /// # Retorno
+    /// Devuelve `Ok(())` si la sintaxis es válida, o `Err(ErrorType)` si es inválida.
+    /// 
     fn validate_syntax(&self, parsed_query: &[String]) -> Result<(), ErrorType> {
         if parsed_query.len() < 4
             || parsed_query[0] != "select"
@@ -51,6 +67,14 @@ impl CommandParser for SelectParser {
         Ok(())
     }
 
+    /// Parsea la consulta `SELECT` en un objeto `Query`.
+    ///
+    /// # Argumentos
+    /// * `parsed_query` - Una `Vec<String>` que contiene los componentes de la consulta.
+    ///
+    /// # Retorno
+    /// Devuelve un `Query::Select` que contiene los detalles de la consulta, o un `Err(ErrorType)` en caso de error.
+    /// 
     fn parse(&self, parsed_query: Vec<String>) -> Result<Query, ErrorType> {
         let table_name = extract_table_name(&parsed_query)?;
         let columns = cleaned_values(get_columns(&parsed_query));
@@ -66,6 +90,14 @@ impl CommandParser for SelectParser {
     }
 }
 
+/// Extrae el nombre de la tabla de la consulta `SELECT`.
+///
+/// # Argumentos
+/// * `parsed_query` - Una referencia a un `Vec<String>` con la consulta ya parseada.
+///
+/// # Retorno
+/// Devuelve el nombre de la tabla o un `Err(ErrorType)` si no se encuentra.
+/// 
 fn extract_table_name(parsed_query: &[String]) -> Result<String, ErrorType> {
     parsed_query
         .iter()
@@ -77,6 +109,14 @@ fn extract_table_name(parsed_query: &[String]) -> Result<String, ErrorType> {
         })
 }
 
+/// Extrae las columnas para la cláusula `ORDER BY` y las remueve de las condiciones.
+///
+/// # Argumentos
+/// * `condition` - Una referencia mutable a un `Vec<String>` que contiene las condiciones de la consulta.
+///
+/// # Retorno
+/// Devuelve un `Vec<String>` con las columnas de ordenamiento.
+/// 
 fn extract_order_by(condition: &mut Vec<String>) -> Vec<String> {
     if let Some(index) = condition.iter().position(|x| x == "order") {
         if index + 1 < condition.len() && condition[index + 1] == "by" {
@@ -87,6 +127,21 @@ fn extract_order_by(condition: &mut Vec<String>) -> Vec<String> {
     }
     Vec::new()
 }
+
+/// Filtra una fila de acuerdo a las condiciones dadas.
+///
+/// # Argumentos
+/// * `row` - Una referencia a un `Vec<String>` que representa los valores de la fila.
+/// * `condition` - Una referencia a un `Vec<String>` que contiene las condiciones a evaluar.
+/// * `headers` - Una referencia a un `Vec<&str>` que representa los encabezados de las columnas.
+///
+/// # Retorno
+/// Devuelve `true` si la fila cumple las condiciones, o `false` en caso contrario.
+/// 
+/// # Notas
+/// Las condiciones pueden ser simples o compuestas, y pueden incluir operadores lógicos como `AND`, `OR` y `NOT`.
+/// Esta funcion tambien es utilizada en update y delete dado que tambien se necesita filtrar las filas.
+/// 
 pub fn filter_row(row: &Vec<String>, condition: &[String], headers: &[&str]) -> bool {
     if condition.is_empty() {
         return true;
@@ -104,6 +159,18 @@ pub fn filter_row(row: &Vec<String>, condition: &[String], headers: &[&str]) -> 
     }
 }
 
+/// Ejecuta la consulta `SELECT` sobre el archivo CSV especificado.
+///
+/// # Argumentos
+/// * `path` - Ruta del archivo CSV.
+/// * `query` - Un objeto `SelectQuery` con los detalles de la consulta.
+///
+/// # Retorno
+/// Devuelve `Ok(())` si la operación fue exitosa, o `Err(ErrorType)` si hubo algún error.
+/// 
+/// # Notas
+/// Esta función lee el archivo línea por línea, y filtra linea a linea (usando filter_row) quedandose con las que cumplen la condición.
+/// 
 pub fn select(path: &str, query: SelectQuery) -> Result<(), ErrorType> {
     if let Ok(file) = File::open(path) {
         let mut reader: io::BufReader<File> = io::BufReader::new(file);
@@ -138,6 +205,13 @@ pub fn select(path: &str, query: SelectQuery) -> Result<(), ErrorType> {
     Ok(())
 }
 
+/// Imprime las filas seleccionadas por la consulta.
+///
+/// # Argumentos
+/// * `result_table` - Un `Vec<String>` con las filas seleccionadas.
+/// * `query` - Una referencia a la consulta `SelectQuery`.
+/// * `headers` - Una referencia a un `Vec<&str>` con los nombres de las columnas.
+/// 
 pub fn print_selected_rows(mut result_table: Vec<String>, query: &SelectQuery, headers: &[&str]) {
     result_table.insert(0, headers.join(","));
     if query.columns[0] == "*" {
@@ -166,6 +240,19 @@ pub fn print_selected_rows(mut result_table: Vec<String>, query: &SelectQuery, h
     }
 }
 
+/// Parsea las columnas y direcciones especificadas en la cláusula `ORDER BY`.
+///
+/// # Argumentos
+/// * `order_by` - Una referencia a un `Vec<String>` con las columnas para ordenar.
+/// * `headers` - Una referencia a un `Vec<&str>` con los nombres de las columnas.
+///
+/// # Retorno
+/// Devuelve un `HashMap` que relaciona el índice de la columna con el ordenamiento (`asc` o `desc`)
+/// y un `Vec<usize>` que representa el orden de inserción dentro de ese hashmap.
+/// 
+/// # Notas
+/// Entiendo que si no se proporciona un ordenamiento, se asume que es ascendente.
+/// 
 pub fn parse_order_by(
     order_by: &[String],
     headers: &[&str],
@@ -195,6 +282,13 @@ pub fn parse_order_by(
     (order_map, insertion_order)
 }
 
+/// Ordena las filas de acuerdo a las columnas especificadas en `ORDER BY`.
+///
+/// # Argumentos
+/// * `result_table` - Una referencia mutable a un `Vec<String>` con las filas a ordenar, previamente seleccionadas del csv.
+/// * `order_map` - Un `HashMap<usize, String>` que indica el índice de la columna y su dirección de orden.
+/// * `insertion_order` - Un `Vec<usize>` que representa el orden de precedencia de las columnas para aplicar el ordenamiento.
+/// 
 fn order_rows(
     result_table: &mut [String],
     order_map: HashMap<usize, String>,
@@ -217,6 +311,15 @@ fn order_rows(
     });
 }
 
+/// Compara dos valores de columna.
+///
+/// # Argumentos
+/// * `val_a` - Valor de la primera columna como `&str`.
+/// * `val_b` - Valor de la segunda columna como `&str`.
+///
+/// # Retorno
+/// Devuelve un `Ordering` que indica si el valor es menor, igual o mayor.
+/// 
 fn compare_columns(val_a: &str, val_b: &str) -> std::cmp::Ordering {
     let val_a = cast_to_value(val_a);
     let val_b = cast_to_value(val_b);
@@ -233,6 +336,20 @@ fn compare_columns(val_a: &str, val_b: &str) -> std::cmp::Ordering {
     }
 }
 
+/// Extrae las evaluaciones booleanas y los operadores de las condiciones lógicas.
+///
+/// # Argumentos
+/// * `condition` - Una referencia a un `Vec<String>` con las condiciones.
+/// * `row` - Una referencia a un `Vec<String>` con los valores de la fila.
+/// * `headers` - Una referencia a un `Vec<&str>` con los encabezados de las columnas.
+///
+/// # Retorno
+/// Devuelve un `Vec<bool>` con los resultados de las evaluaciones y un `Vec<String>` con los operadores lógicos.
+/// 
+/// # Notas
+/// Esta función es utilizada para evaluar condiciones compuestas con operadores lógicos.
+/// Cada bool corresponde a una condicion simple.
+/// 
 fn extract_bools_and_operators(
     condition: &[String],
     row: &Vec<String>,
@@ -269,6 +386,15 @@ fn extract_bools_and_operators(
     (bools, ops)
 }
 
+/// Evalúa las condiciones lógicas utilizando los operadores especificados.
+///
+/// # Argumentos
+/// * `bools` - Un `Vec<bool>` que contiene los resultados de las evaluaciones.
+/// * `ops` - Un `Vec<String>` con los operadores lógicos.
+///
+/// # Retorno
+/// Devuelve un `bool` que indica el resultado final de la evaluación.
+/// 
 fn evaluate_logical_conditions(bools: Vec<bool>, ops: Vec<String>) -> bool {
     let mut result = bools[0];
     for (i, op) in ops.iter().enumerate() {
@@ -282,124 +408,129 @@ fn evaluate_logical_conditions(bools: Vec<bool>, ops: Vec<String>) -> bool {
     result
 }
 
-// -- Testing --
-
 #[cfg(test)]
-#[test]
-fn test_select_parser() {
-    let parser = SelectParser;
-    let input = vec![
-        "select".to_string(),
-        "*".to_string(),
-        "from".to_string(),
-        "test_table".to_string(),
-        "where".to_string(),
-        "age".to_string(),
-        ">".to_string(),
-        "25".to_string(),
-        "order".to_string(),
-        "by".to_string(),
-        "name".to_string(),
-        "asc".to_string(),
-    ];
+mod tests_select_query {
+    use std::collections::HashMap;
 
-    let result = parser.parse(input);
+    use crate::{query::{CommandParser, Query}, utils::select_query::{filter_row, order_rows, parse_order_by}};
 
-    if let Ok(Query::Select(select_query)) = result {
-        assert_eq!(select_query.table_name, "test_table");
-        assert_eq!(select_query.columns, vec!["*"]);
-        assert_eq!(select_query.condition, vec!["age", ">", "25"]);
-        assert_eq!(select_query.order_by, vec!["name", "asc"]);
+    use super::SelectParser;
+
+    #[test]
+    fn test_select_parser() {
+        let parser = SelectParser;
+        let input = vec![
+            "select".to_string(),
+            "*".to_string(),
+            "from".to_string(),
+            "test_table".to_string(),
+            "where".to_string(),
+            "age".to_string(),
+            ">".to_string(),
+            "25".to_string(),
+            "order".to_string(),
+            "by".to_string(),
+            "name".to_string(),
+            "asc".to_string(),
+        ];
+
+        let result = parser.parse(input);
+
+        if let Ok(Query::Select(select_query)) = result {
+            assert_eq!(select_query.table_name, "test_table");
+            assert_eq!(select_query.columns, vec!["*"]);
+            assert_eq!(select_query.condition, vec!["age", ">", "25"]);
+            assert_eq!(select_query.order_by, vec!["name", "asc"]);
+        }
     }
-}
 
-#[test]
-fn test_filter_row_match() {
-    let headers = vec!["id", "name", "age"];
-    let condition = vec!["age".to_string(), ">".to_string(), "25".to_string()];
-    let row = vec!["1".to_string(), "Agus".to_string(), "30".to_string()];
+    #[test]
+    fn test_filter_row_match() {
+        let headers = vec!["id", "name", "age"];
+        let condition = vec!["age".to_string(), ">".to_string(), "25".to_string()];
+        let row = vec!["1".to_string(), "Agus".to_string(), "30".to_string()];
 
-    assert!(filter_row(&row, &condition, &headers));
-}
+        assert!(filter_row(&row, &condition, &headers));
+    }
 
-#[test]
-fn test_filter_row_no_match() {
-    let headers = vec!["id", "name", "age"];
-    let condition = vec!["age".to_string(), ">".to_string(), "30".to_string()];
-    let row = vec!["1".to_string(), "Agus".to_string(), "25".to_string()];
+    #[test]
+    fn test_filter_row_no_match() {
+        let headers = vec!["id", "name", "age"];
+        let condition = vec!["age".to_string(), ">".to_string(), "30".to_string()];
+        let row = vec!["1".to_string(), "Agus".to_string(), "25".to_string()];
 
-    assert!(!filter_row(&row, &condition, &headers));
-}
+        assert!(!filter_row(&row, &condition, &headers));
+    }
 
-#[test]
-fn test_parse_order_by_insertion_order() {
-    let order_by = vec![
-        "age".to_string(),
-        "asc".to_string(),
-        "name".to_string(),
-        "desc".to_string(),
-    ];
-    let headers = vec!["id", "name", "age"];
+    #[test]
+    fn test_parse_order_by_insertion_order() {
+        let order_by = vec![
+            "age".to_string(),
+            "asc".to_string(),
+            "name".to_string(),
+            "desc".to_string(),
+        ];
+        let headers = vec!["id", "name", "age"];
 
-    let (order_map, insertion_order) = parse_order_by(&order_by, &headers);
+        let (order_map, insertion_order) = parse_order_by(&order_by, &headers);
 
-    let mut expected_order_map = HashMap::new();
-    expected_order_map.insert(2, "asc".to_string());
-    expected_order_map.insert(1, "desc".to_string());
+        let mut expected_order_map = HashMap::new();
+        expected_order_map.insert(2, "asc".to_string());
+        expected_order_map.insert(1, "desc".to_string());
 
-    assert_eq!(order_map, expected_order_map);
-    assert_eq!(insertion_order, vec![2, 1]);
-}
+        assert_eq!(order_map, expected_order_map);
+        assert_eq!(insertion_order, vec![2, 1]);
+    }
 
-#[test]
-fn test_order_rows_with_one_condition() {
-    let mut result_table = vec![
-        "1,Agus,30".to_string(),
-        "2,Bob,25".to_string(),
-        "3,Gon,35".to_string(),
-    ];
-
-    let mut order_map = HashMap::new();
-    order_map.insert(2, "asc".to_string());
-
-    let insertion_order = vec![2];
-    order_rows(&mut result_table, order_map, insertion_order);
-
-    assert_eq!(
-        result_table,
-        vec![
-            "2,Bob,25".to_string(),
+    #[test]
+    fn test_order_rows_with_one_condition() {
+        let mut result_table = vec![
             "1,Agus,30".to_string(),
+            "2,Bob,25".to_string(),
             "3,Gon,35".to_string(),
-        ]
-    );
-}
+        ];
 
-#[test]
-fn test_order_rows_when_tie() {
-    let mut result_table = vec![
-        "1,Agus,30".to_string(),
-        "2,Bob,25".to_string(),
-        "3,Agus,35".to_string(),
-        "4,Daniel,25".to_string(),
-    ];
+        let mut order_map = HashMap::new();
+        order_map.insert(2, "asc".to_string());
 
-    let mut order_map = HashMap::new();
+        let insertion_order = vec![2];
+        order_rows(&mut result_table, order_map, insertion_order);
 
-    order_map.insert(1, "asc".to_string());
-    order_map.insert(2, "desc".to_string());
+        assert_eq!(
+            result_table,
+            vec![
+                "2,Bob,25".to_string(),
+                "1,Agus,30".to_string(),
+                "3,Gon,35".to_string(),
+            ]
+        );
+    }
 
-    let insertion_order = vec![1, 2];
-    order_rows(&mut result_table, order_map, insertion_order);
-    println!("{:?}", result_table);
-
-    assert_eq!(
-        result_table,
-        vec![
-            "3,Agus,35".to_string(),
+    #[test]
+    fn test_order_rows_when_tie() {
+        let mut result_table = vec![
             "1,Agus,30".to_string(),
             "2,Bob,25".to_string(),
+            "3,Agus,35".to_string(),
             "4,Daniel,25".to_string(),
-        ]
-    );
-}
+        ];
+
+        let mut order_map = HashMap::new();
+
+        order_map.insert(1, "asc".to_string());
+        order_map.insert(2, "desc".to_string());
+
+        let insertion_order = vec![1, 2];
+        order_rows(&mut result_table, order_map, insertion_order);
+        println!("{:?}", result_table);
+
+        assert_eq!(
+            result_table,
+            vec![
+                "3,Agus,35".to_string(),
+                "1,Agus,30".to_string(),
+                "2,Bob,25".to_string(),
+                "4,Daniel,25".to_string(),
+            ]
+        );
+    }}
