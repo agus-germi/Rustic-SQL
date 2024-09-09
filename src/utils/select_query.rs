@@ -410,11 +410,8 @@ fn evaluate_logical_conditions(bools: Vec<bool>, ops: Vec<String>) -> bool {
 
 #[cfg(test)]
 mod tests_select_query {
-    use std::collections::HashMap;
-
-    use crate::{query::{CommandParser, Query}, utils::select_query::{filter_row, order_rows, parse_order_by}};
-
-    use super::SelectParser;
+    
+    use super::*;
 
     #[test]
     fn test_select_parser() {

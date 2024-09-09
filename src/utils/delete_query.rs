@@ -13,6 +13,12 @@ use crate::{
 use crate::query::CommandParser;
 
 #[derive(Debug)]
+
+/// Representa una consulta `DELETE`, con los parámetros:
+/// 
+/// * `table_name` - El nombre de la tabla de la que se eliminarán filas.
+/// * `condition` - Las condiciones que deben cumplir las filas para ser eliminadas.
+/// 
 pub struct DeleteQuery {
     pub table_name: String,
     pub condition: Vec<String>,
@@ -20,6 +26,14 @@ pub struct DeleteQuery {
 
 pub struct DeleteParser;
 impl CommandParser for DeleteParser {
+    /// Valida la sintaxis de la consulta `DELETES`.
+    ///
+    /// # Argumentos
+    /// * `parsed_query` - Una referencia a un `Vec<String>` con los componentes de la consulta ya parseados.
+    ///
+    /// # Retorno
+    /// Devuelve `Ok(())` si la sintaxis es válida, o `Err(ErrorType)` si es inválida.
+    /// 
     fn validate_syntax(&self, parsed_query: &[String]) -> Result<(), ErrorType> {
         if parsed_query.len() < 3 || parsed_query[0] != "delete" || parsed_query[1] != "from" {
             error::print_error(
@@ -31,7 +45,15 @@ impl CommandParser for DeleteParser {
 
         Ok(())
     }
-
+    /// Parsea la consulta de eliminación y la convierte en una estructura `Query`.
+    ///
+    /// # Argumentos
+    /// * `parsed_query` - Un vector de `String` que representa la consulta descompuesta en tokens.
+    ///
+    /// # Retorno
+    /// Devuelve un `Ok(Query)` con una consulta de eliminación si el parseo es exitoso,
+    /// o un `ErrorType::InvalidSyntax` si ocurre un error durante el parseo.
+    /// 
     fn parse(&self, parsed_query: Vec<String>) -> Result<Query, ErrorType> {
         let table_name: String;
         let table_name_index = parsed_query.iter().position(|x| x == "from");
@@ -49,6 +71,15 @@ impl CommandParser for DeleteParser {
     }
 }
 
+/// Elimina las filas de un archivo CSV según la consulta de eliminación.
+///
+/// # Argumentos
+/// * `path` - La ruta del archivo CSV.
+/// * `delete_query` - La consulta de eliminación que especifica las condiciones de eliminación.
+///
+/// # Retorno
+/// Devuelve `Ok(())` si la eliminación es exitosa, o un `ErrorType::InvalidTable` si ocurre un error al abrir o leer el archivo.
+/// 
 pub fn delete(path: &str, delete_query: DeleteQuery) -> Result<(), ErrorType> {
     let mut index: usize = 0;
     if let Ok(file) = File::open(path) {
@@ -78,6 +109,18 @@ pub fn delete(path: &str, delete_query: DeleteQuery) -> Result<(), ErrorType> {
     Ok(())
 }
 
+/// Elimina una línea específica de un archivo CSV.
+///
+/// # Argumentos
+/// * `file_path` - La ruta del archivo CSV.
+/// * `line_to_delete` - El índice de la línea que se desea eliminar.
+///
+/// # Retorno
+/// Devuelve `Ok(())` si la eliminación es exitosa, o un `io::Result` en caso de error durante la operación de archivo.
+/// 
+/// # Notas
+/// Se crea un archivo temporal para almacenar las líneas que no se eliminarán, y luego se renombra para pisar el archivo original.
+/// 
 fn delete_line(file_path: &str, line_to_delete: usize) -> io::Result<()> {
     let file = File::open(file_path)?;
     let reader = BufReader::new(file);
