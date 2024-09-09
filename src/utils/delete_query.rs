@@ -15,10 +15,10 @@ use crate::query::CommandParser;
 #[derive(Debug)]
 
 /// Representa una consulta `DELETE`, con los parámetros:
-/// 
+///
 /// * `table_name` - El nombre de la tabla de la que se eliminarán filas.
 /// * `condition` - Las condiciones que deben cumplir las filas para ser eliminadas.
-/// 
+///
 pub struct DeleteQuery {
     pub table_name: String,
     pub condition: Vec<String>,
@@ -33,7 +33,7 @@ impl CommandParser for DeleteParser {
     ///
     /// # Retorno
     /// Devuelve `Ok(())` si la sintaxis es válida, o `Err(ErrorType)` si es inválida.
-    /// 
+    ///
     fn validate_syntax(&self, parsed_query: &[String]) -> Result<(), ErrorType> {
         if parsed_query.len() < 3 || parsed_query[0] != "delete" || parsed_query[1] != "from" {
             error::print_error(
@@ -53,7 +53,7 @@ impl CommandParser for DeleteParser {
     /// # Retorno
     /// Devuelve un `Ok(Query)` con una consulta de eliminación si el parseo es exitoso,
     /// o un `ErrorType::InvalidSyntax` si ocurre un error durante el parseo.
-    /// 
+    ///
     fn parse(&self, parsed_query: Vec<String>) -> Result<Query, ErrorType> {
         let table_name: String;
         let table_name_index = parsed_query.iter().position(|x| x == "from");
@@ -79,7 +79,7 @@ impl CommandParser for DeleteParser {
 ///
 /// # Retorno
 /// Devuelve `Ok(())` si la eliminación es exitosa, o un `ErrorType::InvalidTable` si ocurre un error al abrir o leer el archivo.
-/// 
+///
 pub fn delete(path: &str, delete_query: DeleteQuery) -> Result<(), ErrorType> {
     let mut index: usize = 0;
     if let Ok(file) = File::open(path) {
@@ -117,10 +117,10 @@ pub fn delete(path: &str, delete_query: DeleteQuery) -> Result<(), ErrorType> {
 ///
 /// # Retorno
 /// Devuelve `Ok(())` si la eliminación es exitosa, o un `io::Result` en caso de error durante la operación de archivo.
-/// 
+///
 /// # Notas
 /// Se crea un archivo temporal para almacenar las líneas que no se eliminarán, y luego se renombra para pisar el archivo original.
-/// 
+///
 fn delete_line(file_path: &str, line_to_delete: usize) -> io::Result<()> {
     let file = File::open(file_path)?;
     let reader = BufReader::new(file);

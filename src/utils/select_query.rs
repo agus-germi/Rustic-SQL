@@ -18,12 +18,12 @@ use crate::operations::filter;
 #[derive(Debug)]
 
 /// Representa una consulta `SELECT`, con los parámetros:
-/// 
+///
 /// * `table_name` - Nombre de la tabla de la cual se seleccionarán los datos.
 /// * `columns` - Columnas que se van a seleccionar.
 /// * `condition` - Condiciones que deben cumplirse para seleccionar filas.
 /// * `order_by` - Criterios de ordenamiento para los resultados.
-/// 
+///
 pub struct SelectQuery {
     pub table_name: String,
     pub columns: Vec<String>,
@@ -39,7 +39,7 @@ impl CommandParser for SelectParser {
     ///
     /// # Retorno
     /// Devuelve `Ok(())` si la sintaxis es válida, o `Err(ErrorType)` si es inválida.
-    /// 
+    ///
     fn validate_syntax(&self, parsed_query: &[String]) -> Result<(), ErrorType> {
         if parsed_query.len() < 4
             || parsed_query[0] != "select"
@@ -74,7 +74,7 @@ impl CommandParser for SelectParser {
     ///
     /// # Retorno
     /// Devuelve un `Query::Select` que contiene los detalles de la consulta, o un `Err(ErrorType)` en caso de error.
-    /// 
+    ///
     fn parse(&self, parsed_query: Vec<String>) -> Result<Query, ErrorType> {
         let table_name = extract_table_name(&parsed_query)?;
         let columns = cleaned_values(get_columns(&parsed_query));
@@ -97,7 +97,7 @@ impl CommandParser for SelectParser {
 ///
 /// # Retorno
 /// Devuelve el nombre de la tabla o un `Err(ErrorType)` si no se encuentra.
-/// 
+///
 fn extract_table_name(parsed_query: &[String]) -> Result<String, ErrorType> {
     parsed_query
         .iter()
@@ -116,7 +116,7 @@ fn extract_table_name(parsed_query: &[String]) -> Result<String, ErrorType> {
 ///
 /// # Retorno
 /// Devuelve un `Vec<String>` con las columnas de ordenamiento.
-/// 
+///
 fn extract_order_by(condition: &mut Vec<String>) -> Vec<String> {
     if let Some(index) = condition.iter().position(|x| x == "order") {
         if index + 1 < condition.len() && condition[index + 1] == "by" {
@@ -137,11 +137,11 @@ fn extract_order_by(condition: &mut Vec<String>) -> Vec<String> {
 ///
 /// # Retorno
 /// Devuelve `true` si la fila cumple las condiciones, o `false` en caso contrario.
-/// 
+///
 /// # Notas
 /// Las condiciones pueden ser simples o compuestas, y pueden incluir operadores lógicos como `AND`, `OR` y `NOT`.
 /// Esta funcion tambien es utilizada en update y delete dado que tambien se necesita filtrar las filas.
-/// 
+///
 pub fn filter_row(row: &Vec<String>, condition: &[String], headers: &[&str]) -> bool {
     if condition.is_empty() {
         return true;
@@ -167,10 +167,10 @@ pub fn filter_row(row: &Vec<String>, condition: &[String], headers: &[&str]) -> 
 ///
 /// # Retorno
 /// Devuelve `Ok(())` si la operación fue exitosa, o `Err(ErrorType)` si hubo algún error.
-/// 
+///
 /// # Notas
 /// Esta función lee el archivo línea por línea, y filtra linea a linea (usando filter_row) quedandose con las que cumplen la condición.
-/// 
+///
 pub fn select(path: &str, query: SelectQuery) -> Result<(), ErrorType> {
     if let Ok(file) = File::open(path) {
         let mut reader: io::BufReader<File> = io::BufReader::new(file);
@@ -211,7 +211,7 @@ pub fn select(path: &str, query: SelectQuery) -> Result<(), ErrorType> {
 /// * `result_table` - Un `Vec<String>` con las filas seleccionadas.
 /// * `query` - Una referencia a la consulta `SelectQuery`.
 /// * `headers` - Una referencia a un `Vec<&str>` con los nombres de las columnas.
-/// 
+///
 pub fn print_selected_rows(mut result_table: Vec<String>, query: &SelectQuery, headers: &[&str]) {
     result_table.insert(0, headers.join(","));
     if query.columns[0] == "*" {
@@ -249,10 +249,10 @@ pub fn print_selected_rows(mut result_table: Vec<String>, query: &SelectQuery, h
 /// # Retorno
 /// Devuelve un `HashMap` que relaciona el índice de la columna con el ordenamiento (`asc` o `desc`)
 /// y un `Vec<usize>` que representa el orden de inserción dentro de ese hashmap.
-/// 
+///
 /// # Notas
 /// Entiendo que si no se proporciona un ordenamiento, se asume que es ascendente.
-/// 
+///
 pub fn parse_order_by(
     order_by: &[String],
     headers: &[&str],
@@ -288,7 +288,7 @@ pub fn parse_order_by(
 /// * `result_table` - Una referencia mutable a un `Vec<String>` con las filas a ordenar, previamente seleccionadas del csv.
 /// * `order_map` - Un `HashMap<usize, String>` que indica el índice de la columna y su dirección de orden.
 /// * `insertion_order` - Un `Vec<usize>` que representa el orden de precedencia de las columnas para aplicar el ordenamiento.
-/// 
+///
 fn order_rows(
     result_table: &mut [String],
     order_map: HashMap<usize, String>,
@@ -319,7 +319,7 @@ fn order_rows(
 ///
 /// # Retorno
 /// Devuelve un `Ordering` que indica si el valor es menor, igual o mayor.
-/// 
+///
 fn compare_columns(val_a: &str, val_b: &str) -> std::cmp::Ordering {
     let val_a = cast_to_value(val_a);
     let val_b = cast_to_value(val_b);
@@ -345,11 +345,11 @@ fn compare_columns(val_a: &str, val_b: &str) -> std::cmp::Ordering {
 ///
 /// # Retorno
 /// Devuelve un `Vec<bool>` con los resultados de las evaluaciones y un `Vec<String>` con los operadores lógicos.
-/// 
+///
 /// # Notas
 /// Esta función es utilizada para evaluar condiciones compuestas con operadores lógicos.
 /// Cada bool corresponde a una condicion simple.
-/// 
+///
 fn extract_bools_and_operators(
     condition: &[String],
     row: &Vec<String>,
@@ -393,7 +393,7 @@ fn extract_bools_and_operators(
 ///
 /// # Retorno
 /// Devuelve un `bool` que indica el resultado final de la evaluación.
-/// 
+///
 fn evaluate_logical_conditions(bools: Vec<bool>, ops: Vec<String>) -> bool {
     let mut result = bools[0];
     for (i, op) in ops.iter().enumerate() {
@@ -409,7 +409,7 @@ fn evaluate_logical_conditions(bools: Vec<bool>, ops: Vec<String>) -> bool {
 
 #[cfg(test)]
 mod tests_select_query {
-    
+
     use super::*;
 
     #[test]
@@ -529,4 +529,5 @@ mod tests_select_query {
                 "4,Daniel,25".to_string(),
             ]
         );
-    }}
+    }
+}

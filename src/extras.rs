@@ -19,13 +19,13 @@ pub enum Value {
 /// ```rust
 /// use sql::extras::cast_to_value;
 /// use sql::extras::Value;
-/// 
+///
 /// let v = cast_to_value("42");
 /// assert_eq!(v, Value::Int(42));
 /// let v = cast_to_value("hello");
 /// assert_eq!(v, Value::Str("hello".to_string()));
 /// ```
-/// 
+///
 pub fn cast_to_value(s: &str) -> Value {
     if let Ok(int_value) = s.parse::<i32>() {
         Value::Int(int_value)
@@ -78,14 +78,13 @@ pub fn get_int_value(value: &Value) -> Option<i32> {
 /// let v = Value::Int(42);
 /// assert_eq!(get_str_value(&v), None);
 /// ```
-/// 
+///
 pub fn get_str_value(value: &Value) -> Option<String> {
     match value {
         Value::Int(_) => None,
         Value::Str(v) => Some(v.to_string().to_lowercase()),
     }
 }
-
 
 /// Extrae las columnas de una consulta SQL parseada, deteniéndose antes de la palabra clave "from".
 /// Si la consulta comienza con "update", buscará "set" antes de empezar a extraer columnas.
@@ -95,7 +94,7 @@ pub fn get_str_value(value: &Value) -> Option<String> {
 ///
 /// # Retorna
 /// * Un vector de cadenas con los nombres de las columnas.
-/// 
+///
 pub fn get_columns(parsed_query: &[String]) -> Vec<String> {
     let mut columns = Vec::new();
     let mut index = 1;

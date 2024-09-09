@@ -17,12 +17,12 @@ use crate::{
 #[derive(Debug)]
 
 /// Representa una consulta `UPDATE`, con los parámetros:
-/// 
+///
 /// * `table_name` - El nombre de la tabla a actualizar.
 /// * `columns` - Las columnas que se actualizarán.
 /// * `values` - Los nuevos valores para las columnas.
 /// * `condition` - La condición para seleccionar las filas a actualizar.
-/// 
+///
 pub struct UpdateQuery {
     pub table_name: String,
     pub columns: Vec<String>,
@@ -39,7 +39,7 @@ impl CommandParser for UpdateParser {
     ///
     /// # Retorno
     /// Devuelve `Ok(())` si la sintaxis es válida, o `Err(ErrorType)` si es inválida.
-    /// 
+    ///
     fn validate_syntax(&self, parsed_query: &[String]) -> Result<(), ErrorType> {
         if parsed_query.len() < 4
             || parsed_query[0] != "update"
@@ -84,7 +84,7 @@ impl CommandParser for UpdateParser {
     ///
     /// # Retorno
     /// Devuelve un `Query::Update` que contiene los detalles de la consulta, o un `Err(ErrorType)` en caso de error.
-    /// 
+    ///
     fn parse(&self, parsed_query: Vec<String>) -> Result<Query, ErrorType> {
         let table_name = extract_table_name(&parsed_query)?;
         let set_index = parsed_query.iter().position(|x| x == "set").unwrap_or(0);
@@ -109,7 +109,7 @@ impl CommandParser for UpdateParser {
 ///
 /// # Retorno
 /// Devuelve el nombre de la tabla como un `String` si se encuentra, o un `ErrorType::InvalidSyntax` si no se encuentra.
-/// 
+///
 fn extract_table_name(parsed_query: &[String]) -> Result<String, ErrorType> {
     parsed_query
         .iter()
@@ -132,7 +132,7 @@ fn extract_table_name(parsed_query: &[String]) -> Result<String, ErrorType> {
 ///
 /// # Retorno
 /// Devuelve una tupla con dos vectores de `String`, el primero contiene las columnas y el segundo contiene los valores.
-/// 
+///
 fn extract_columns_and_values(
     parsed_query: &[String],
     start_index: usize,
@@ -145,9 +145,9 @@ fn extract_columns_and_values(
         if parsed_query[i] == "=" && i + 1 < parsed_query.len() {
             columns.push(parsed_query[i - 1].to_string());
             values.push(parsed_query[i + 1].to_string());
-            i += 2; 
+            i += 2;
         } else if parsed_query[i] == "where" {
-            break; 
+            break;
         } else {
             i += 1;
         }
@@ -163,7 +163,7 @@ fn extract_columns_and_values(
 ///
 /// # Retorno
 /// Devuelve `Ok(())` si la actualización es exitosa, o un `ErrorType` si ocurre un error durante la actualización.
-/// 
+///
 pub fn update(path: &str, query: UpdateQuery) -> Result<(), ErrorType> {
     let file = File::open(path).map_err(|_| {
         print_error(ErrorType::InvalidTable, "No se pudo abrir el archivo");
@@ -208,10 +208,10 @@ pub fn update(path: &str, query: UpdateQuery) -> Result<(), ErrorType> {
 ///
 /// # Retorno
 /// Devuelve `Ok(())` si la actualización es exitosa, o un `ErrorType` si ocurre un error durante la actualización.
-/// 
+///
 /// # Notas
 /// Se toma linea a linea y se filtra según la condición indicada en la consulta. Si la fila cumple con la condición, se actualiza.
-/// 
+///
 fn update_rows(
     path: &str,
     reader: io::BufReader<File>,
@@ -244,7 +244,7 @@ fn update_rows(
 ///
 /// # Retorno
 /// Devuelve un vector de `String` que representa la línea actualizada.
-/// 
+///
 pub fn create_updated_line(
     headers: &[&str],
     columns: &Vec<String>,
@@ -289,7 +289,7 @@ pub fn create_updated_line(
 ///
 /// # Retorno
 /// Devuelve un `io::Result<()>` que indica el éxito o el fallo de la operación.
-/// 
+///
 pub fn update_line(
     file_path: &str,
     line_index: usize,

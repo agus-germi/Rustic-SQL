@@ -12,11 +12,11 @@ use crate::{
 #[derive(Debug)]
 
 /// Representa una consulta `INSERT`, con los parámetros:
-/// 
+///
 /// * `table_name` - El nombre de la tabla en la que se realizará la inserción.
 /// * `columns` - Las columnas en las que se insertarán los valores.
 /// * `values` - Los valores a insertar en las columnas correspondientes.
-/// 
+///
 pub struct InsertQuery {
     pub table_name: String,
     pub columns: Vec<String>,
@@ -33,7 +33,7 @@ impl CommandParser for InsertParser {
     ///
     /// # Retorno
     /// Devuelve `Ok(())` si la sintaxis es válida, o `Err(ErrorType)` si es inválida.
-    /// 
+    ///
     fn validate_syntax(&self, parsed_query: &[String]) -> Result<(), ErrorType> {
         if parsed_query.len() < 4 || parsed_query[0] != "insert" || parsed_query[1] != "into" {
             error::print_error(
@@ -69,7 +69,7 @@ impl CommandParser for InsertParser {
     /// # Retorno
     /// Devuelve un `Ok(Query)` con una consulta de inserción si el parseo es exitoso,
     /// o un `ErrorType::InvalidSyntax` si ocurre un error durante el parseo.
-    /// 
+    ///
     fn parse(&self, parsed_query: Vec<String>) -> Result<Query, ErrorType> {
         let mut table_index = 0;
         let _table_name_index = parsed_query
@@ -106,7 +106,7 @@ impl CommandParser for InsertParser {
 ///
 /// # Retorno
 /// Devuelve `Ok(())` si la inserción es exitosa, o un `ErrorType::InvalidTable` si ocurre un error durante la apertura del archivo.
-/// 
+///
 pub fn insert(path: &str, query: InsertQuery) -> Result<(), ErrorType> {
     if let Ok(file) = File::open(path) {
         let mut reader: io::BufReader<File> = io::BufReader::new(file);
@@ -133,11 +133,11 @@ pub fn insert(path: &str, query: InsertQuery) -> Result<(), ErrorType> {
 ///
 /// # Retorno
 /// Devuelve un vector de `String` que representa la fila con los valores a insertar.
-/// 
+///
 /// # Notas
 /// Si una columna no tiene un valor correspondiente, se inserta una cadena vacía.
 /// Este método tambien se utiliza en el módulo `update_query.rs` para generar la fila cuando no se especifican condiciones.
-/// 
+///
 pub fn generate_row_to_insert(
     headers: &[String],
     columns: &Vec<String>,

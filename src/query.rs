@@ -19,8 +19,8 @@ use crate::utils::update_query::update;
 /// * `Insert` - Consulta de inserción.
 /// * `Delete` - Consulta de eliminación.
 /// * `Update` - Consulta de actualización.
-/// 
-/// 
+///
+///
 pub enum Query {
     Select(SelectQuery),
     Insert(InsertQuery),
@@ -30,7 +30,7 @@ pub enum Query {
 
 #[derive(Debug)]
 /// Enum que representa los diferentes tipos de comandos SQL.
-/// 
+///
 /// # Notas
 /// Utilizado para determinar qué tipo de consulta se está realizando y asignar el parser correspondiente.
 pub enum CommandType {
@@ -44,7 +44,7 @@ pub enum CommandType {
 ///
 /// Los implementadores de este trait deben proporcionar métodos para validar
 /// la sintaxis de los comandos y para parsear los comandos en una estructura `Query`.
-/// 
+///
 pub trait CommandParser {
     /// Valida la sintaxis del comando SQL.
     ///
@@ -53,7 +53,7 @@ pub trait CommandParser {
     ///
     /// # Retorno
     /// Devuelve `Ok(())` si la sintaxis es válida, o un `ErrorType::InvalidSyntax` si la sintaxis es incorrecta.
-    /// 
+    ///
     fn validate_syntax(&self, parsed_query: &[String]) -> Result<(), ErrorType>;
 
     /// Parsea el comando SQL en una estructura `Query`.
@@ -63,7 +63,7 @@ pub trait CommandParser {
     ///
     /// # Retorno
     /// Devuelve un `Ok(Query)` si el parseo es exitoso, o un `ErrorType::InvalidSyntax` si ocurre un error durante el parseo.
-    /// 
+    ///
     fn parse(&self, parsed_query: Vec<String>) -> Result<Query, ErrorType>;
 }
 
@@ -75,7 +75,7 @@ pub trait CommandParser {
 ///
 /// # Retorno
 /// Devuelve `Ok(())` si la ejecución es exitosa, o un `ErrorType` si ocurre un error durante el parseo o ejecución de la consulta.
-/// 
+///
 /// # Notas
 /// Esta función es la principal para ejecutar consultas SQL.
 /// Es la encargada de parsear la consulta y determinar qué tipo de consulta se está realizando, en base a eso, se ejecuta la consulta correspondiente.
@@ -115,7 +115,7 @@ pub fn parse_query(path: &str, query: &str) -> Result<(), ErrorType> {
 /// # Argumentos
 /// * `path` - La ruta del archivo sobre el que se debe ejecutar la consulta.
 /// * `query` - La consulta SQL a ejecutar, encapsulada en una variante de `Query`.
-/// 
+///
 /// # Notas
 /// De acuerdo a la consulta SQL, se ejecuta la función correspondiente.
 pub fn execute(path: &str, query: Query) {

@@ -11,7 +11,7 @@ pub enum ErrorType {
     InvalidTable,
     InvalidColumn,
     InvalidSyntax,
-    Error, 
+    Error,
 }
 
 /// Imprime un mensaje de error en la salida estándar de error (`stderr`) basado en el tipo de error recibido.
@@ -37,9 +37,9 @@ pub enum ErrorType {
 /// ```
 ///
 /// # Notas
-/// Esta función usa `eprintln!` para imprimir los errores en `stderr`, lo cual es útil en 
+/// Esta función usa `eprintln!` para imprimir los errores en `stderr`, lo cual es útil en
 /// aplicaciones de línea de comandos para diferenciar la salida normal de los mensajes de error.
-/// 
+///
 pub fn print_error(error_type: ErrorType, description: &str) {
     match error_type {
         ErrorType::InvalidTable => eprintln!("[INVALID_TABLE]: [{}]", description),
