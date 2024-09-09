@@ -382,7 +382,6 @@ fn extract_bools_and_operators(
             i += 3;
         }
     }
-    println!("{:?}", row);
     (bools, ops)
 }
 
