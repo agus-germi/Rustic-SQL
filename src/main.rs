@@ -6,11 +6,6 @@ use std::env;
 pub mod error;
 pub mod extras;
 
-
-
-
-
-
 fn main() {
     let args: Vec<String> = env::args().collect();
 
@@ -25,4 +20,3 @@ fn main() {
 
     if let Err(_error) = parse_query(path, query) {}
 }
-

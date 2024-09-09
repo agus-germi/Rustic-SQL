@@ -1,17 +1,14 @@
-
-
-
 use utils::delete_query::{DeleteParser, DeleteQuery};
 use utils::insert_query::{InsertParser, InsertQuery};
 use utils::select_query::{SelectParser, SelectQuery};
 use utils::update_query::{UpdateParser, UpdateQuery};
 
 use crate::error::{self, ErrorType};
+use crate::utils;
 use crate::utils::delete_query::delete;
 use crate::utils::insert_query::insert;
 use crate::utils::select_query::select;
 use crate::utils::update_query::update;
-use crate::utils;
 
 #[derive(Debug)]
 pub enum Query {
@@ -58,14 +55,13 @@ pub fn parse_query(path: &str, query: &str) -> Result<(), ErrorType> {
     };
     command.validate_syntax(&parsed_query)?;
     match command.parse(parsed_query) {
-        Ok(query) => execute(path, query),        
+        Ok(query) => execute(path, query),
         Err(error) => return Err(error),
     };
     Ok(())
 }
 
-
-pub fn execute(path:&str, query: Query) {
+pub fn execute(path: &str, query: Query) {
     match query {
         Query::Select(select_query) => {
             let _ = select(path, select_query);
@@ -95,28 +91,28 @@ mod tests {
     #[test]
     fn test_parse_insert_query() {
         let query = "INSERT INTO ordenes (id, id_cliente, producto, cantidad) VALUES (111, 6, 'Laptop', 3);";
-        let result = parse_query("fake_path.csv",query);
+        let result = parse_query("fake_path.csv", query);
         assert!(result.is_ok(), "Failed to parse valid INSERT query");
     }
 
     #[test]
     fn test_parse_update_query() {
         let query = "update table_name set column1 = 'value1' where column2 = 'value2'";
-        let result = parse_query("fake_path.csv",query);
+        let result = parse_query("fake_path.csv", query);
         assert!(result.is_ok(), "Failed to parse valid UPDATE query");
     }
 
     #[test]
     fn test_parse_delete_query() {
         let query = "delete from table_name where column1 = 'value1'";
-        let result = parse_query("fake_path.csv",query);
+        let result = parse_query("fake_path.csv", query);
         assert!(result.is_ok(), "Failed to parse valid DELETE query");
     }
 
     #[test]
     fn test_parse_invalid_command() {
         let query = "not_a_command table table_name";
-        let result = parse_query("fake_path.csv",query);
+        let result = parse_query("fake_path.csv", query);
         assert!(result.is_err(), "Error for invalid command");
         if let Err(error) = result {
             assert_eq!(error, ErrorType::InvalidSyntax);
@@ -126,7 +122,7 @@ mod tests {
     #[test]
     fn test_parse_short_query() {
         let query = "insert into";
-        let result = parse_query("fake_path.csv",query);
+        let result = parse_query("fake_path.csv", query);
         assert!(result.is_err(), "Error for too short query");
         if let Err(error) = result {
             assert_eq!(error, ErrorType::InvalidSyntax);

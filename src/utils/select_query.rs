@@ -10,7 +10,7 @@ use crate::{
     extras::{
         cast_to_value, cleaned_values, get_column_index, get_columns, get_condition_columns,
         get_int_value, get_str_value,
-    }
+    },
 };
 
 use crate::operations::filter;
@@ -104,16 +104,16 @@ pub fn filter_row(row: &Vec<String>, condition: &[String], headers: &[&str]) -> 
     }
 }
 
-pub fn select(path:&str, query: SelectQuery) -> Result<(), ErrorType> {
-    if let Ok(file) = File::open(&path) {
+pub fn select(path: &str, query: SelectQuery) -> Result<(), ErrorType> {
+    if let Ok(file) = File::open(path) {
         let mut reader: io::BufReader<File> = io::BufReader::new(file);
         let mut header: String = String::new();
-        
+
         let _ = reader.read_line(&mut header);
         let header = header.trim();
         let headers: Vec<&str> = header.split(',').collect();
         let lines = reader.lines();
-        
+
         let mut result_table: Vec<String> = Vec::new();
         for line in lines {
             if let Ok(line) = line {
@@ -127,9 +127,9 @@ pub fn select(path:&str, query: SelectQuery) -> Result<(), ErrorType> {
             }
         }
         let (order_map, insertion_order) = parse_order_by(&query.order_by, &headers);
-        
+
         order_rows(&mut result_table, order_map, insertion_order);
-        
+
         print_selected_rows(result_table, &query, &headers)
     } else {
         print_error(ErrorType::InvalidTable, "No se pudo abrir el archivo");

@@ -113,9 +113,8 @@ fn extract_columns_and_values(
     (cleaned_values(columns), cleaned_values(values))
 }
 
-pub fn update(path: &str,query: UpdateQuery) -> Result<(), ErrorType> {
-
-    let file = File::open(&path).map_err(|_| {
+pub fn update(path: &str, query: UpdateQuery) -> Result<(), ErrorType> {
+    let file = File::open(path).map_err(|_| {
         print_error(ErrorType::InvalidTable, "No se pudo abrir el archivo");
         ErrorType::InvalidTable
     })?;
@@ -139,12 +138,12 @@ pub fn update(path: &str,query: UpdateQuery) -> Result<(), ErrorType> {
             &query.values,
         );
         return {
-            write_csv(&path, Some(row_to_insert));
+            write_csv(path, Some(row_to_insert));
             Ok(())
         };
     }
 
-    update_rows(&path, reader, &headers, &query)?;
+    update_rows(path, reader, &headers, &query)?;
     Ok(())
 }
 
@@ -205,7 +204,11 @@ pub fn create_updated_line(
     row_to_insert
 }
 
-pub fn update_line(file_path: &str, line_index: usize, row: Option<&Vec<String>>) -> io::Result<()> {
+pub fn update_line(
+    file_path: &str,
+    line_index: usize,
+    row: Option<&Vec<String>>,
+) -> io::Result<()> {
     let file = File::open(file_path)?;
     let reader = BufReader::new(file);
     let lines = reader.lines();

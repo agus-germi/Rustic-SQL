@@ -3,10 +3,11 @@ use std::{
     io::{self, BufRead, BufReader, BufWriter, Write},
 };
 
-use super::{select_query::filter_row};
+use super::select_query::filter_row;
 use crate::{
     error::{self, print_error, ErrorType},
-    extras::{cleaned_values, get_condition_columns}, query::Query,
+    extras::{cleaned_values, get_condition_columns},
+    query::Query,
 };
 
 use crate::query::CommandParser;
@@ -21,7 +22,10 @@ pub struct DeleteParser;
 impl CommandParser for DeleteParser {
     fn validate_syntax(&self, parsed_query: &[String]) -> Result<(), ErrorType> {
         if parsed_query.len() < 3 || parsed_query[0] != "delete" || parsed_query[1] != "from" {
-            error::print_error(ErrorType::InvalidSyntax, "Sintaxis inválida: falta 'DELETE FROM'");
+            error::print_error(
+                ErrorType::InvalidSyntax,
+                "Sintaxis inválida: falta 'DELETE FROM'",
+            );
             return Err(ErrorType::InvalidSyntax);
         }
 
@@ -47,7 +51,7 @@ impl CommandParser for DeleteParser {
 
 pub fn delete(path: &str, delete_query: DeleteQuery) -> Result<(), ErrorType> {
     let mut index: usize = 0;
-    if let Ok(file) = File::open(&path) {
+    if let Ok(file) = File::open(path) {
         let mut reader: io::BufReader<File> = io::BufReader::new(file);
         let mut header: String = String::new();
         let _ = reader.read_line(&mut header);
@@ -59,7 +63,7 @@ pub fn delete(path: &str, delete_query: DeleteQuery) -> Result<(), ErrorType> {
             if let Ok(line) = line {
                 let values: Vec<String> = line.split(",").map(|s| s.to_string()).collect();
                 if filter_row(&values, &delete_query.condition, &headers) {
-                    let _ = delete_line(&path, index);
+                    let _ = delete_line(path, index);
                     index -= 1;
                 };
             } else {
@@ -134,6 +138,4 @@ mod tests {
             assert_eq!(error, ErrorType::InvalidSyntax);
         }
     }
-
-
 }
