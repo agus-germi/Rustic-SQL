@@ -3,11 +3,12 @@ use std::{
     io::{self, BufRead, BufReader, BufWriter, Write},
 };
 
-use super::{
+use crate::utils::{
     insert_query::{generate_row_to_insert, write_csv},
     select_query::filter_row,
-    CommandParser, Query,
 };
+
+use crate::query::{CommandParser, Query};
 use crate::{
     error::{self, print_error, ErrorType},
     extras::{cleaned_values, get_column_index, get_condition_columns},
@@ -204,7 +205,7 @@ pub fn create_updated_line(
     row_to_insert
 }
 
-fn update_line(file_path: &str, line_index: usize, row: Option<&Vec<String>>) -> io::Result<()> {
+pub fn update_line(file_path: &str, line_index: usize, row: Option<&Vec<String>>) -> io::Result<()> {
     let file = File::open(file_path)?;
     let reader = BufReader::new(file);
     let lines = reader.lines();

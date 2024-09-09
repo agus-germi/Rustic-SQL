@@ -1,15 +1,17 @@
-pub mod delete_query;
-pub mod insert_query;
-pub mod select_query;
-pub mod update_query;
 
-use delete_query::{DeleteParser, DeleteQuery};
-use insert_query::{InsertParser, InsertQuery};
-use select_query::{SelectParser, SelectQuery};
-use update_query::{UpdateParser, UpdateQuery};
+
+
+use utils::delete_query::{DeleteParser, DeleteQuery};
+use utils::insert_query::{InsertParser, InsertQuery};
+use utils::select_query::{SelectParser, SelectQuery};
+use utils::update_query::{UpdateParser, UpdateQuery};
 
 use crate::error::{self, ErrorType};
-use crate::execute;
+use crate::utils::delete_query::delete;
+use crate::utils::insert_query::insert;
+use crate::utils::select_query::select;
+use crate::utils::update_query::update;
+use crate::utils;
 
 #[derive(Debug)]
 pub enum Query {
@@ -19,7 +21,15 @@ pub enum Query {
     Update(UpdateQuery),
 }
 
-trait CommandParser {
+#[derive(Debug)]
+pub enum CommandType {
+    Select,
+    Insert,
+    Delete,
+    Update,
+}
+
+pub trait CommandParser {
     fn validate_syntax(&self, parsed_query: &[String]) -> Result<(), ErrorType>;
     fn parse(&self, parsed_query: Vec<String>) -> Result<Query, ErrorType>;
 }
@@ -54,6 +64,23 @@ pub fn parse_query(path: &str, query: &str) -> Result<(), ErrorType> {
     Ok(())
 }
 
+
+pub fn execute(path:&str, query: Query) {
+    match query {
+        Query::Select(select_query) => {
+            let _ = select(path, select_query);
+        }
+        Query::Insert(insert_query) => {
+            let _ = insert(path, insert_query);
+        }
+        Query::Delete(delete_query) => {
+            let _ = delete(path, delete_query);
+        }
+        Query::Update(update_query) => {
+            let _ = update(path, update_query);
+        }
+    }
+}
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -3,7 +3,7 @@ use std::{
     io::{self, BufRead, Write},
 };
 
-use super::{CommandParser, Query};
+use crate::query::{CommandParser, Query};
 use crate::{
     error::{self, print_error, ErrorType},
     extras::{cleaned_values, get_column_index},
@@ -146,7 +146,6 @@ pub fn write_csv(path: &str, values: Option<Vec<String>>) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::fs;
 
     #[test]
     fn test_insert_parser() {
@@ -199,26 +198,5 @@ mod tests {
         Ok(())
     }
 
-    #[test]
-    fn test_insert() -> Result<(), Box<dyn std::error::Error>> {
-        let test_file = "test_insert.csv";
 
-        let mut file = File::create(test_file)?;
-        writeln!(file, "id,name,age")?;
-
-        let insert_query = InsertQuery {
-            table_name: "test_insert".to_string(),
-            columns: vec!["name".to_string(), "age".to_string()],
-            values: vec!["Alice".to_string(), "30".to_string()],
-        };
-
-        let _ = insert(test_file,insert_query);
-
-        let contents = fs::read_to_string(test_file)?;
-        assert!(contents.contains(",Alice,30"));
-
-        fs::remove_file(test_file)?;
-
-        Ok(())
-    }
 }

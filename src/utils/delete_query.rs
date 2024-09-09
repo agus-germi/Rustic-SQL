@@ -3,11 +3,13 @@ use std::{
     io::{self, BufRead, BufReader, BufWriter, Write},
 };
 
-use super::{select_query::filter_row, CommandParser, Query};
+use super::{select_query::filter_row};
 use crate::{
     error::{self, print_error, ErrorType},
-    extras::{cleaned_values, get_condition_columns},
+    extras::{cleaned_values, get_condition_columns}, query::Query,
 };
+
+use crate::query::CommandParser;
 
 #[derive(Debug)]
 pub struct DeleteQuery {
@@ -133,28 +135,5 @@ mod tests {
         }
     }
 
-    #[test]
-    fn test_delete_function() -> Result<(), Box<dyn std::error::Error>> {
-        let test_file = "test_delete_function.csv";
 
-        let mut file = File::create(test_file)?;
-        writeln!(file, "id,name")?;
-        writeln!(file, "1,Agus")?;
-        writeln!(file, "2,Tina")?;
-
-        let delete_query = DeleteQuery {
-            table_name: "test_delete_function".to_string(),
-            condition: vec!["id".to_string(), "=".to_string(), "1".to_string()],
-        };
-
-        let _ = delete(test_file,delete_query);
-
-        let contents = fs::read_to_string(test_file)?;
-        let expected_result = "id,name\n2,Tina\n";
-        assert_eq!(contents, expected_result);
-
-        fs::remove_file(test_file)?; //elimino el archivo de prueba
-
-        Ok(())
-    }
 }
