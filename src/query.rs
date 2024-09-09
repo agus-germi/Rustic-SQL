@@ -11,6 +11,16 @@ use crate::utils::select_query::select;
 use crate::utils::update_query::update;
 
 #[derive(Debug)]
+
+/// Enum que representa los diferentes tipos de consultas posibles.
+///
+/// # Variantes
+/// * `Select` - Consulta de selección.
+/// * `Insert` - Consulta de inserción.
+/// * `Delete` - Consulta de eliminación.
+/// * `Update` - Consulta de actualización.
+/// 
+/// 
 pub enum Query {
     Select(SelectQuery),
     Insert(InsertQuery),
@@ -19,6 +29,10 @@ pub enum Query {
 }
 
 #[derive(Debug)]
+/// Enum que representa los diferentes tipos de comandos SQL.
+/// 
+/// # Notas
+/// Utilizado para determinar qué tipo de consulta se está realizando y asignar el parser correspondiente.
 pub enum CommandType {
     Select,
     Insert,
@@ -26,10 +40,45 @@ pub enum CommandType {
     Update,
 }
 
+/// Trait para el análisis de comandos SQL.
+///
+/// Los implementadores de este trait deben proporcionar métodos para validar
+/// la sintaxis de los comandos y para parsear los comandos en una estructura `Query`.
+/// 
 pub trait CommandParser {
+    /// Valida la sintaxis del comando SQL.
+    ///
+    /// # Argumentos
+    /// * `parsed_query` - Un vector de `String` que representa el comando SQL descompuesto en tokens.
+    ///
+    /// # Retorno
+    /// Devuelve `Ok(())` si la sintaxis es válida, o un `ErrorType::InvalidSyntax` si la sintaxis es incorrecta.
+    /// 
     fn validate_syntax(&self, parsed_query: &[String]) -> Result<(), ErrorType>;
+
+    /// Parsea el comando SQL en una estructura `Query`.
+    ///
+    /// # Argumentos
+    /// * `parsed_query` - Un vector de `String` que representa el comando SQL descompuesto en tokens.
+    ///
+    /// # Retorno
+    /// Devuelve un `Ok(Query)` si el parseo es exitoso, o un `ErrorType::InvalidSyntax` si ocurre un error durante el parseo.
+    /// 
     fn parse(&self, parsed_query: Vec<String>) -> Result<Query, ErrorType>;
 }
+
+/// Parsea y ejecuta una consulta SQL.
+///
+/// # Argumentos
+/// * `path` - La ruta del archivo sobre el que se debe ejecutar la consulta.
+/// * `query` - La consulta SQL en formato de cadena.
+///
+/// # Retorno
+/// Devuelve `Ok(())` si la ejecución es exitosa, o un `ErrorType` si ocurre un error durante el parseo o ejecución de la consulta.
+/// 
+/// # Notas
+/// Esta función es la principal para ejecutar consultas SQL.
+/// Es la encargada de parsear la consulta y determinar qué tipo de consulta se está realizando, en base a eso, se ejecuta la consulta correspondiente.
 
 pub fn parse_query(path: &str, query: &str) -> Result<(), ErrorType> {
     let parsed_query: Vec<String> = query
@@ -61,6 +110,14 @@ pub fn parse_query(path: &str, query: &str) -> Result<(), ErrorType> {
     Ok(())
 }
 
+/// Ejecuta una consulta SQL en el archivo especificado.
+///
+/// # Argumentos
+/// * `path` - La ruta del archivo sobre el que se debe ejecutar la consulta.
+/// * `query` - La consulta SQL a ejecutar, encapsulada en una variante de `Query`.
+/// 
+/// # Notas
+/// De acuerdo a la consulta SQL, se ejecuta la función correspondiente.
 pub fn execute(path: &str, query: Query) {
     match query {
         Query::Select(select_query) => {
@@ -78,42 +135,42 @@ pub fn execute(path: &str, query: Query) {
     }
 }
 #[cfg(test)]
-mod tests {
+mod tests_query {
     use super::*;
 
     #[test]
     fn test_parse_select_query() {
         let query = "select * from table_name";
         let result = parse_query("fake_path.csv", query);
-        assert!(result.is_ok(), "Failed to parse valid SELECT query");
+        assert!(result.is_ok(), "No se pudo parsear la consulta SELECT");
     }
 
     #[test]
     fn test_parse_insert_query() {
         let query = "INSERT INTO ordenes (id, id_cliente, producto, cantidad) VALUES (111, 6, 'Laptop', 3);";
         let result = parse_query("fake_path.csv", query);
-        assert!(result.is_ok(), "Failed to parse valid INSERT query");
+        assert!(result.is_ok(), "No se pudo parsear la consulta INSERT");
     }
 
     #[test]
     fn test_parse_update_query() {
         let query = "update table_name set column1 = 'value1' where column2 = 'value2'";
         let result = parse_query("fake_path.csv", query);
-        assert!(result.is_ok(), "Failed to parse valid UPDATE query");
+        assert!(result.is_ok(), "No se pudo parsear la consulta UPDATE");
     }
 
     #[test]
     fn test_parse_delete_query() {
         let query = "delete from table_name where column1 = 'value1'";
         let result = parse_query("fake_path.csv", query);
-        assert!(result.is_ok(), "Failed to parse valid DELETE query");
+        assert!(result.is_ok(), "No se pudo parsear la consulta DELETE");
     }
 
     #[test]
     fn test_parse_invalid_command() {
         let query = "not_a_command table table_name";
         let result = parse_query("fake_path.csv", query);
-        assert!(result.is_err(), "Error for invalid command");
+        assert!(result.is_err(), "Comando no válido");
         if let Err(error) = result {
             assert_eq!(error, ErrorType::InvalidSyntax);
         }
@@ -123,7 +180,7 @@ mod tests {
     fn test_parse_short_query() {
         let query = "insert into";
         let result = parse_query("fake_path.csv", query);
-        assert!(result.is_err(), "Error for too short query");
+        assert!(result.is_err(), "Sintaxis inválida");
         if let Err(error) = result {
             assert_eq!(error, ErrorType::InvalidSyntax);
         }
