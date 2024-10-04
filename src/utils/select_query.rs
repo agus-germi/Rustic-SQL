@@ -142,7 +142,7 @@ fn extract_order_by(condition: &mut Vec<String>) -> Vec<String> {
 /// Las condiciones pueden ser simples o compuestas, y pueden incluir operadores lógicos como `AND`, `OR` y `NOT`.
 /// Esta funcion tambien es utilizada en update y delete dado que tambien se necesita filtrar las filas.
 ///
-pub fn filter_row(row: &Vec<String>, condition: &[String], headers: &[&str]) -> bool {
+pub fn filter_row(row: &[String], condition: &[String], headers: &[&str]) -> bool {
     if condition.is_empty() {
         return true;
     }
@@ -352,7 +352,7 @@ fn compare_columns(val_a: &str, val_b: &str) -> std::cmp::Ordering {
 ///
 fn extract_bools_and_operators(
     condition: &[String],
-    row: &Vec<String>,
+    row: &[String],
     headers: &[&str],
 ) -> (Vec<bool>, Vec<String>) {
     let mut bools = Vec::new();
